@@ -105,7 +105,7 @@ export default function ComprehensiveExamResults() {
         lastName: user.lastName,
         email: user.email,
         studentCategory: user.studentCategory || 'Not Set',
-        profilePicture: user.profilePicture
+        avatar: user.avatar
       },
       {
         examName: results.name,

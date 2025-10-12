@@ -6,7 +6,7 @@ interface StudentInfo {
     lastName: string;
     email: string;
     studentCategory: string;
-    profilePicture?: string;
+    avatar?: string;
 }
 
 interface ExamResult {
@@ -46,9 +46,9 @@ export class PDFService {
 
         // Student Photo (if available)
         let yPosition = 55;
-        if (student.profilePicture) {
+        if (student.avatar) {
             try {
-                doc.addImage(student.profilePicture, 'JPEG', pageWidth / 2 - 15, yPosition, 30, 30, undefined, 'FAST');
+                doc.addImage(student.avatar, 'JPEG', pageWidth / 2 - 15, yPosition, 30, 30, undefined, 'FAST');
                 yPosition += 35;
             } catch (error) {
                 console.error('Failed to add image:', error);
