@@ -80,7 +80,7 @@ export default function App() {
       image: null
     },
     {
-      name: 'Grace Adebayo',
+      name: 'Adebayo Adebayo',
       category: 'Art',
       score: '92%',
       text: 'The 7-day comprehensive exam prepared me perfectly. I felt so confident on exam day!',
