@@ -14,8 +14,8 @@ export interface PracticeSessionConfig {
 export const practiceService = {
   async getSubjects(category?: string) {
     const url = category 
-      ? `/practice/subjects?category=${category}`
-      : '/practice/subjects';
+      ? `/api/practice/subjects?category=${category}`
+      : '/api/practice/subjects';
     
     console.log('🔵 Fetching subjects from:', url); // DEBUG
     
@@ -27,24 +27,24 @@ export const practiceService = {
   },
 
   async getTopics(subjectId: string) {
-    const response = await apiClient.get(`/practice/subjects/${subjectId}/topics`);
+    const response = await apiClient.get(`/api/practice/subjects/${subjectId}/topics`);
     return response.data.data;
   },
 
   // Creates a NEW session and returns session + questions
   async startSession(config: PracticeSessionConfig) {
-    const response = await apiClient.post('/practice/start', config);
+    const response = await apiClient.post('/api/practice/start', config);
     return response.data.data;
   },
 
   // Gets an EXISTING session with questions (ADD THIS)
   async getSession(sessionId: string) {
-    const response = await apiClient.get(`/practice/sessions/${sessionId}`);
+    const response = await apiClient.get(`/api/practice/sessions/${sessionId}`);
     return response.data.data;
   },
 
   async submitAnswer(sessionId: string, questionId: string, answer: string) {
-    const response = await apiClient.post(`/practice/sessions/${sessionId}/answer`, {
+    const response = await apiClient.post(`/api/practice/sessions/${sessionId}/answer`, {
       questionId,
       selectedAnswer: answer,
     });
@@ -52,30 +52,30 @@ export const practiceService = {
   },
 
   async completeSession(sessionId: string) {
-    const response = await apiClient.post(`/practice/sessions/${sessionId}/complete`);
+    const response = await apiClient.post(`/api/practice/sessions/${sessionId}/complete`);
     return response.data.data;
   },
 
   async toggleFlag(sessionId: string, questionId: string, isFlagged: boolean) {
     const response = await apiClient.post(
-      `/practice/sessions/${sessionId}/questions/${questionId}/flag`,
+      `/api/practice/sessions/${sessionId}/questions/${questionId}/flag`,
       { isFlagged }
     );
     return response.data.data;
   },
 
   async pauseSession(sessionId: string) {
-    const response = await apiClient.post(`/practice/sessions/${sessionId}/pause`);
+    const response = await apiClient.post(`/api/practice/sessions/${sessionId}/pause`);
     return response.data.data;
   },
 
   async resumeSession(sessionId: string) {
-    const response = await apiClient.post(`/practice/sessions/${sessionId}/resume`);
+    const response = await apiClient.post(`/api/practice/sessions/${sessionId}/resume`);
     return response.data.data;
   },
 
   async getSessionResults(sessionId: string) {
-    const response = await apiClient.get(`/practice/${sessionId}/results`);
+    const response = await apiClient.get(`/api/practice/${sessionId}/results`);
     return response.data.data;
   },
 
@@ -85,7 +85,7 @@ export const practiceService = {
     selectedAnswer: string;
     timeSpent: number;
   }>) {
-    const response = await apiClient.post(`/practice/sessions/${sessionId}/submit`, { answers });
+    const response = await apiClient.post(`/api/practice/sessions/${sessionId}/submit`, { answers });
     return response.data.data;
   }
 };

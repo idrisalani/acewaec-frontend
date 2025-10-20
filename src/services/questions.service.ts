@@ -58,13 +58,13 @@ export interface Topic {
 export const questionsService = {
   // Get all subjects
   getSubjects: async (): Promise<Subject[]> => {
-    const response = await apiClient.get('/questions/subjects');
+    const response = await apiClient.get('/api/questions/subjects');
     return response.data.data;
   },
 
   // Get topics by subject
   getTopics: async (subjectId: string): Promise<Topic[]> => {
-    const response = await apiClient.get(`/questions/subjects/${subjectId}/topics`);
+    const response = await apiClient.get(`/api/questions/subjects/${subjectId}/topics`);
     return response.data.data;
   },
 
@@ -79,13 +79,13 @@ export const questionsService = {
     if (params.topicIds?.length) queryParams.append('topicIds', params.topicIds.join(','));
     if (params.excludeIds?.length) queryParams.append('excludeIds', params.excludeIds.join(','));
 
-    const response = await apiClient.get(`/questions/random?${queryParams.toString()}`);
+    const response = await apiClient.get(`/api/questions/random?${queryParams.toString()}`);
     return response.data.data;
   },
 
   // Check answer
   checkAnswer: async (questionId: string, answer: string) => {
-    const response = await apiClient.post(`/questions/questions/${questionId}/check`, {
+    const response = await apiClient.post(`/api/questions/questions/${questionId}/check`, {
       answer
     });
     return response.data.data;
@@ -105,7 +105,7 @@ export const questionsService = {
     if (params.difficulty) queryParams.append('difficulty', params.difficulty);
     if (params.limit) queryParams.append('limit', params.limit.toString());
 
-    const response = await apiClient.get(`/questions/questions?${queryParams.toString()}`);
+    const response = await apiClient.get(`/api/questions/questions?${queryParams.toString()}`);
     return response.data.data;
   }
 };
