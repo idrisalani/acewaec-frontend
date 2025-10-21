@@ -3,7 +3,7 @@ import type { LoginData } from '../types/auth.types';
 
 export const authService = {
   async login(data: LoginData) {
-    const response = await apiClient.post('/api/auth/login', data);
+    const response = await apiClient.post('/auth/login', data);
     
     const { accessToken, user } = response.data.data;
     
@@ -17,7 +17,7 @@ export const authService = {
   },
 
   async register(data: FormData) {
-    const response = await apiClient.post('/api/auth/register', data, {
+    const response = await apiClient.post('/auth/register', data, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
@@ -36,7 +36,7 @@ export const authService = {
 
   async logout() {
     try {
-      await apiClient.post('/api/auth/logout');
+      await apiClient.post('/auth/logout');
     } catch (error) {
       console.error('Logout error:', error);
     }
