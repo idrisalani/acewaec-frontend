@@ -8,7 +8,9 @@ import {
   CheckCircle,
   AlertTriangle,
   Home,
-  AlertCircle
+  AlertCircle,
+  Menu,
+  X
 } from 'lucide-react';
 import { practiceService } from '../services/practice.service';
 import QuestionCard from '../components/practice/QuestionCard';
@@ -40,11 +42,11 @@ export default function PracticeSession() {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState<Answer[]>([]);
   const [timeRemaining, setTimeRemaining] = useState(0);
-  // const [totalTime, setTotalTime] = useState(0);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [showNavigator, setShowNavigator] = useState(false);
   const hasAutoSubmitted = useRef(false);
 
   const loadSession = useCallback(async () => {
@@ -53,7 +55,6 @@ export default function PracticeSession() {
       if (cached) {
         const data = JSON.parse(cached);
         setQuestions(data.questions);
-        // setTotalTime(data.session.duration * 60);
         setTimeRemaining(data.session.duration * 60);
 
         const initialAnswers = data.questions.map((q: Question) => ({
@@ -67,7 +68,6 @@ export default function PracticeSession() {
       } else {
         const data = await practiceService.getSession(sessionId!);
         setQuestions(data.questions);
-        // setTotalTime(data.session.duration * 60);
         setTimeRemaining(data.session.duration * 60);
 
         const initialAnswers = data.questions.map((q: Question) => ({
@@ -92,7 +92,6 @@ export default function PracticeSession() {
     if (isAutoSubmit && hasAutoSubmitted.current) return;
     if (isAutoSubmit) hasAutoSubmitted.current = true;
 
-    // Count answered questions
     const answeredCount = answers.filter(a => a.selectedAnswer).length;
 
     if (answeredCount === 0 && !isAutoSubmit) {
@@ -106,9 +105,8 @@ export default function PracticeSession() {
     setSubmitError(null);
 
     try {
-      // Submit each answer individually - FIX: iterate through answers array properly
       const submitPromises = answers
-        .filter(answer => answer.selectedAnswer) // Only submit answered questions
+        .filter(answer => answer.selectedAnswer)
         .map(answer =>
           practiceService.submitAnswer(
             sessionId!,
@@ -123,7 +121,6 @@ export default function PracticeSession() {
       await Promise.all(submitPromises);
       await practiceService.completeSession(sessionId!);
 
-      // Get results
       const resultsResponse = await apiClient.get(`/practice/sessions/${sessionId}/results`);
 
       localStorage.removeItem('currentPracticeSession');
@@ -139,11 +136,6 @@ export default function PracticeSession() {
     }
   }, [answers, navigate, sessionId, submitting]);
 
-  // const handleAutoSubmit = useCallback(async () => {
-  //   await handleSubmit();
-  //   // eslint-disable-next-line react-hooks/exhaustive-deps
-  // }, []); // We'll need to add handleSubmit to dependencies
-
   useEffect(() => {
     loadSession();
   }, [loadSession]);
@@ -153,7 +145,7 @@ export default function PracticeSession() {
       const timer = setInterval(() => {
         setTimeRemaining(prev => {
           if (prev <= 1) {
-            handleSubmit(true); // Will auto-submit when timer hits 0
+            handleSubmit(true);
             return 0;
           }
           return prev - 1;
@@ -176,17 +168,20 @@ export default function PracticeSession() {
   const handleNextQuestion = () => {
     if (currentQuestionIndex < questions.length - 1) {
       setCurrentQuestionIndex(prev => prev + 1);
+      setShowNavigator(false);
     }
   };
 
   const handlePreviousQuestion = () => {
     if (currentQuestionIndex > 0) {
       setCurrentQuestionIndex(prev => prev - 1);
+      setShowNavigator(false);
     }
   };
 
   const handleJumpToQuestion = (index: number) => {
     setCurrentQuestionIndex(index);
+    setShowNavigator(false);
   };
 
   const toggleFlag = () => {
@@ -209,11 +204,19 @@ export default function PracticeSession() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-indigo-600 mx-auto mb-4"></div>
-          <p className="text-gray-600 text-lg">Loading session...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-indigo-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading practice session...</p>
         </div>
+      </div>
+    );
+  }
+
+  if (questions.length === 0) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+        <p className="text-gray-600 text-center">No questions available</p>
       </div>
     );
   }
@@ -224,28 +227,28 @@ export default function PracticeSession() {
   const flaggedCount = answers.filter(a => a.flagged).length;
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50">
       {/* Exit Confirmation Modal */}
       {showExitConfirm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl p-8 max-w-md w-full shadow-2xl animate-fadeIn">
+          <div className="bg-white rounded-2xl p-6 max-w-sm w-full text-center">
             <AlertTriangle className="text-orange-500 mx-auto mb-4" size={48} />
-            <h3 className="text-2xl font-bold text-gray-900 mb-4 text-center">Exit Practice?</h3>
-            <p className="text-gray-600 text-center mb-6">
-              Your progress will be lost if you exit now. Are you sure you want to leave?
+            <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-3">Exit Practice?</h3>
+            <p className="text-gray-600 text-sm sm:text-base mb-6">
+              Your progress will be lost if you exit now. Are you sure?
             </p>
             <div className="flex gap-3">
               <button
                 onClick={() => setShowExitConfirm(false)}
-                className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 py-3 rounded-lg font-semibold transition-colors"
+                className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 py-2 sm:py-3 rounded-lg font-semibold transition-colors text-sm sm:text-base"
               >
-                Continue Practice
+                Continue
               </button>
               <button
                 onClick={() => navigate('/dashboard')}
-                className="flex-1 bg-red-600 hover:bg-red-700 text-white py-3 rounded-lg font-semibold transition-colors"
+                className="flex-1 bg-red-600 hover:bg-red-700 text-white py-2 sm:py-3 rounded-lg font-semibold transition-colors text-sm sm:text-base"
               >
-                Exit Anyway
+                Exit
               </button>
             </div>
           </div>
@@ -254,56 +257,77 @@ export default function PracticeSession() {
 
       {/* Top Bar */}
       <div className="bg-white shadow-md sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4">
+          <div className="flex items-center justify-between gap-3 sm:gap-4">
             {/* Exit Button */}
             <button
               onClick={() => setShowExitConfirm(true)}
-              className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
+              className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors text-sm sm:text-base flex-shrink-0"
             >
               <Home size={20} />
               <span className="hidden sm:inline">Exit</span>
             </button>
 
-            {/* Progress Bar */}
-            <div className="flex-1 mx-8">
-              <div className="flex items-center justify-between mb-2 text-sm">
+            {/* Progress Bar - Hidden on mobile, shown on sm+ */}
+            <div className="hidden sm:flex-1 sm:flex sm:flex-col">
+              <div className="flex items-center justify-between mb-2 text-xs sm:text-sm">
                 <span className="text-gray-600">
-                  {answeredCount} of {questions.length} answered
+                  {answeredCount}/{questions.length} answered
                 </span>
                 <span className="text-gray-600">
-                  {Math.round(getProgressPercentage())}% complete
+                  {Math.round(getProgressPercentage())}%
                 </span>
               </div>
               <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
                 <div
-                  className="bg-gradient-to-r from-indigo-600 to-purple-600 h-full transition-all duration-300 rounded-full"
+                  className="bg-gradient-to-r from-indigo-600 to-purple-600 h-full transition-all rounded-full"
                   style={{ width: `${getProgressPercentage()}%` }}
                 ></div>
               </div>
             </div>
 
             {/* Timer */}
-            <div className={`flex items-center gap-2 px-4 py-2 rounded-lg font-bold ${timeRemaining < 300 ? 'bg-red-100 text-red-700 animate-pulse' :
+            <div className={`flex items-center gap-2 px-2 sm:px-4 py-1.5 sm:py-2 rounded-lg font-bold text-xs sm:text-sm flex-shrink-0 ${timeRemaining < 300 ? 'bg-red-100 text-red-700 animate-pulse' :
               timeRemaining < 600 ? 'bg-orange-100 text-orange-700' :
                 'bg-blue-100 text-blue-700'
               }`}>
-              <Clock size={20} />
-              <span className="text-lg">
+              <Clock size={16} />
+              <span>
                 {Math.floor(timeRemaining / 60)}:{(timeRemaining % 60).toString().padStart(2, '0')}
               </span>
             </div>
+
+            {/* Mobile Navigator Toggle */}
+            <button
+              onClick={() => setShowNavigator(!showNavigator)}
+              className="lg:hidden p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              {showNavigator ? <X size={20} /> : <Menu size={20} />}
+            </button>
+          </div>
+
+          {/* Mobile Progress */}
+          <div className="sm:hidden mt-2 flex items-center justify-between text-xs text-gray-600 mb-2">
+            <span>{answeredCount}/{questions.length} answered</span>
+            <span>{Math.round(getProgressPercentage())}%</span>
+          </div>
+          <div className="sm:hidden w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+            <div
+              className="bg-gradient-to-r from-indigo-600 to-purple-600 h-full transition-all rounded-full"
+              style={{ width: `${getProgressPercentage()}%` }}
+            ></div>
           </div>
         </div>
       </div>
 
+      {/* Error Alert */}
       {submitError && (
-        <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2">
+        <div className="m-3 p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2 max-w-7xl mx-auto">
           <AlertCircle className="text-red-600 mt-0.5 flex-shrink-0" size={18} />
-          <p className="text-red-800 text-sm flex-1">{submitError}</p>
+          <p className="text-red-800 text-xs sm:text-sm flex-1">{submitError}</p>
           <button
             onClick={() => setSubmitError(null)}
-            className="text-red-600 hover:text-red-800 font-bold"
+            className="text-red-600 hover:text-red-800 font-bold flex-shrink-0"
           >
             ✕
           </button>
@@ -311,8 +335,8 @@ export default function PracticeSession() {
       )}
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="grid lg:grid-cols-4 gap-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 sm:gap-6">
           {/* Question Area */}
           <div className="lg:col-span-3">
             <QuestionCard
@@ -325,24 +349,24 @@ export default function PracticeSession() {
             />
 
             {/* Navigation */}
-            <div className="mt-6 flex items-center justify-between gap-4">
+            <div className="mt-4 sm:mt-6 flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-4">
               <button
                 onClick={handlePreviousQuestion}
                 disabled={currentQuestionIndex === 0}
-                className="flex items-center gap-2 px-6 py-3 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm sm:text-base"
               >
-                <ChevronLeft size={20} />
-                Previous
+                <ChevronLeft size={18} />
+                <span className="hidden sm:inline">Previous</span>
               </button>
 
               <button
                 onClick={toggleFlag}
-                className={`flex items-center gap-2 px-6 py-3 rounded-lg font-semibold transition-colors ${currentAnswer.flagged
+                className={`w-full sm:w-auto flex items-center justify-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg font-semibold transition-colors text-sm sm:text-base ${currentAnswer.flagged
                   ? 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'
                   : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                   }`}
               >
-                <Flag size={20} fill={currentAnswer.flagged ? 'currentColor' : 'none'} />
+                <Flag size={18} fill={currentAnswer.flagged ? 'currentColor' : 'none'} />
                 {currentAnswer.flagged ? 'Unflag' : 'Flag'}
               </button>
 
@@ -350,43 +374,43 @@ export default function PracticeSession() {
                 <button
                   onClick={() => handleSubmit(false)}
                   disabled={submitting}
-                  className="flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white rounded-lg font-semibold disabled:opacity-50 transition-all shadow-md hover:shadow-lg"
+                  className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 sm:px-8 py-2.5 sm:py-3 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white rounded-lg font-semibold disabled:opacity-50 transition-all shadow-md hover:shadow-lg text-sm sm:text-base"
                 >
-                  {submitting ? 'Submitting...' : 'Submit Exam'}
+                  {submitting ? 'Submitting...' : 'Submit'}
                 </button>
               ) : (
                 <button
                   onClick={handleNextQuestion}
-                  className="flex items-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold transition-colors"
+                  className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold transition-colors text-sm sm:text-base"
                 >
-                  Next
-                  <ChevronRight size={20} />
+                  <span className="hidden sm:inline">Next</span>
+                  <ChevronRight size={18} />
                 </button>
               )}
             </div>
           </div>
 
           {/* Question Navigator */}
-          <div className="lg:col-span-1">
-            <div className="bg-white rounded-xl shadow-lg p-6 sticky top-24">
-              <h3 className="font-bold text-gray-900 mb-4">Questions</h3>
+          <div className={`lg:col-span-1 ${showNavigator ? 'block' : 'hidden lg:block'}`}>
+            <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6 sticky top-24 max-h-[calc(100vh-120px)] overflow-y-auto">
+              <h3 className="font-bold text-gray-900 mb-4 text-sm sm:text-base">Questions</h3>
 
               {/* Stats */}
-              <div className="grid grid-cols-2 gap-3 mb-4 pb-4 border-b">
-                <div className="text-center p-2 bg-green-50 rounded-lg">
-                  <CheckCircle className="text-green-600 mx-auto mb-1" size={20} />
+              <div className="grid grid-cols-2 gap-2 sm:gap-3 mb-4 pb-4 border-b">
+                <div className="text-center p-2 sm:p-3 bg-green-50 rounded-lg">
+                  <CheckCircle className="text-green-600 mx-auto mb-1" size={18} />
                   <p className="text-xs text-gray-600">Answered</p>
-                  <p className="text-lg font-bold text-green-600">{answeredCount}</p>
+                  <p className="text-base sm:text-lg font-bold text-green-600">{answeredCount}</p>
                 </div>
-                <div className="text-center p-2 bg-yellow-50 rounded-lg">
-                  <Flag className="text-yellow-600 mx-auto mb-1" size={20} />
+                <div className="text-center p-2 sm:p-3 bg-yellow-50 rounded-lg">
+                  <Flag className="text-yellow-600 mx-auto mb-1" size={18} />
                   <p className="text-xs text-gray-600">Flagged</p>
-                  <p className="text-lg font-bold text-yellow-600">{flaggedCount}</p>
+                  <p className="text-base sm:text-lg font-bold text-yellow-600">{flaggedCount}</p>
                 </div>
               </div>
 
               {/* Question Grid */}
-              <div className="grid grid-cols-5 gap-2 max-h-96 overflow-y-auto">
+              <div className="grid grid-cols-5 sm:grid-cols-6 gap-1.5 sm:gap-2 max-h-72 overflow-y-auto mb-4">
                 {questions.map((_, index) => {
                   const status = getQuestionStatus(index);
                   const isCurrent = index === currentQuestionIndex;
@@ -395,13 +419,7 @@ export default function PracticeSession() {
                     <button
                       key={index}
                       onClick={() => handleJumpToQuestion(index)}
-                      className={`
-                        aspect-square rounded-lg font-bold text-sm transition-all
-                        ${isCurrent ? 'ring-2 ring-indigo-600 ring-offset-2' : ''}
-                        ${status === 'answered' ? 'bg-green-100 text-green-700 hover:bg-green-200' : ''}
-                        ${status === 'flagged' ? 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200' : ''}
-                        ${status === 'unanswered' ? 'bg-gray-100 text-gray-600 hover:bg-gray-200' : ''}
-                      `}
+                      className={`aspect-square rounded-lg font-bold text-xs sm:text-sm transition-all ${isCurrent ? 'ring-2 ring-indigo-600 scale-110' : ''} ${status === 'answered' ? 'bg-green-100 text-green-700' : ''} ${status === 'flagged' ? 'bg-yellow-100 text-yellow-700' : ''} ${status === 'unanswered' ? 'bg-gray-100 text-gray-600' : ''}`}
                     >
                       {index + 1}
                     </button>
@@ -410,17 +428,17 @@ export default function PracticeSession() {
               </div>
 
               {/* Legend */}
-              <div className="mt-4 pt-4 border-t space-y-2 text-sm">
+              <div className="pt-3 sm:pt-4 border-t space-y-1.5 sm:space-y-2 text-xs sm:text-sm">
                 <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 bg-green-100 rounded"></div>
+                  <div className="w-3 h-3 bg-green-100 rounded"></div>
                   <span className="text-gray-600">Answered</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 bg-yellow-100 rounded"></div>
+                  <div className="w-3 h-3 bg-yellow-100 rounded"></div>
                   <span className="text-gray-600">Flagged</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 bg-gray-100 rounded"></div>
+                  <div className="w-3 h-3 bg-gray-100 rounded"></div>
                   <span className="text-gray-600">Not answered</span>
                 </div>
               </div>
@@ -429,9 +447,9 @@ export default function PracticeSession() {
               <button
                 onClick={() => handleSubmit(false)}
                 disabled={submitting}
-                className="w-full mt-6 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white py-3 rounded-lg font-semibold disabled:opacity-50 transition-all shadow-md hover:shadow-lg lg:hidden"
+                className="w-full mt-4 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white py-2 sm:py-3 rounded-lg font-semibold disabled:opacity-50 transition-all shadow-md hover:shadow-lg lg:hidden text-sm sm:text-base"
               >
-                {submitting ? 'Submitting...' : 'Submit Exam'}
+                {submitting ? 'Submitting...' : 'Submit'}
               </button>
             </div>
           </div>

@@ -135,16 +135,16 @@ export default function Register() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center p-4 relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center p-3 sm:p-4 md:p-6 relative overflow-hidden">
       {/* Animated background */}
       <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute top-20 right-20 w-96 h-96 bg-white/10 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute bottom-20 left-20 w-96 h-96 bg-white/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
+        <div className="absolute top-10 sm:top-20 right-10 sm:right-20 w-40 h-40 sm:w-96 sm:h-96 bg-white/10 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute bottom-10 sm:bottom-20 left-10 sm:left-20 w-40 h-40 sm:w-96 sm:h-96 bg-white/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
       </div>
 
-      <div className="w-full max-w-6xl grid lg:grid-cols-2 gap-8 relative z-10">
+      <div className="w-full max-w-md md:max-w-6xl md:grid md:grid-cols-2 md:gap-8 relative z-10">
         {/* Left Side - Benefits */}
-        <div className="hidden lg:flex flex-col justify-center text-white p-12">
+        <div className="hidden md:flex flex-col justify-center text-white p-6 lg:p-12">
           <div className="mb-8">
             <div className="flex items-center gap-3 mb-6">
               <div className="w-14 h-14 bg-white/20 backdrop-blur-lg rounded-2xl flex items-center justify-center border border-white/30">
@@ -199,9 +199,9 @@ export default function Register() {
         {/* Right Side - Register Form */}
         <div className="flex items-center justify-center">
           <div className="w-full max-w-md">
-            <div className="bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl p-8 border border-white/20 max-h-[90vh] overflow-y-auto">
+            <div className="bg-white/95 backdrop-blur-xl rounded-2xl sm:rounded-3xl shadow-2xl p-5 sm:p-7 md:p-8 border border-white/20 max-h-[90vh] overflow-y-auto">
               {/* Mobile Logo */}
-              <div className="lg:hidden flex items-center justify-center gap-2 mb-6">
+              <div className="md:hidden flex items-center justify-center gap-2 mb-5 sm:mb-6">
                 <div className="w-10 h-10 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-xl flex items-center justify-center">
                   <BookOpen className="text-white" size={20} />
                 </div>
@@ -210,9 +210,9 @@ export default function Register() {
                 </h1>
               </div>
 
-              <div className="text-center mb-6">
-                <h2 className="text-3xl font-bold text-gray-900 mb-2">Create Account</h2>
-                <p className="text-gray-600">Join thousands of successful students</p>
+              <div className="text-center mb-5 sm:mb-6">
+                <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1">Create Account</h2>
+                <p className="text-xs sm:text-sm text-gray-600">Join thousands of successful students</p>
               </div>
 
               {error && (
@@ -221,10 +221,10 @@ export default function Register() {
                 </div>
               )}
 
-              <form onSubmit={handleSubmit} className="space-y-4">
+              <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
                 {/* Profile Picture Upload */}
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2">
                     Profile Picture (Required for Result PDFs)
                   </label>
                   <div className="flex items-center gap-4">
@@ -233,7 +233,7 @@ export default function Register() {
                         <img
                           src={previewUrl}
                           alt="Preview"
-                          className="w-24 h-24 rounded-xl object-cover border-2 border-indigo-200"
+                          className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl object-cover border-2 border-indigo-200"
                         />
                         <button
                           type="button"
@@ -244,8 +244,8 @@ export default function Register() {
                         </button>
                       </div>
                     ) : (
-                      <div className="w-24 h-24 border-2 border-dashed border-gray-300 rounded-xl flex items-center justify-center bg-gray-50">
-                        <ImageIcon className="text-gray-400" size={32} />
+                      <div className="w-20 h-20 sm:w-24 sm:h-24 border-2 border-dashed border-gray-300 rounded-xl flex items-center justify-center bg-gray-50">
+                        <ImageIcon className="text-gray-400" size={24} />
                       </div>
                     )}
 
@@ -270,13 +270,13 @@ export default function Register() {
                 </div>
 
                 {/* Name Fields */}
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1.5 sm:mb-2">
                       First Name
                     </label>
                     <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                      <div className="absolute inset-y-0 left-0 pl-3 sm:pl-4 flex items-center pointer-events-none">
                         <User className="text-gray-400" size={18} />
                       </div>
                       <input
@@ -284,18 +284,18 @@ export default function Register() {
                         required
                         value={formData.firstName}
                         onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-                        className="w-full pl-11 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all text-gray-900"
+                        className="w-full pl-10 sm:pl-11 pr-3 sm:pr-4 py-2.5 sm:py-3 border-2 border-gray-200 rounded-lg sm:rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all text-gray-900 text-sm sm:text-base"
                         placeholder="First Name"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1.5 sm:mb-2">
                       Last Name
                     </label>
                     <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                      <div className="absolute inset-y-0 left-0 pl-3 sm:pl-4 flex items-center pointer-events-none">
                         <User className="text-gray-400" size={18} />
                       </div>
                       <input
@@ -303,7 +303,7 @@ export default function Register() {
                         required
                         value={formData.lastName}
                         onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-                        className="w-full pl-11 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all text-gray-900"
+                        className="w-full pl-10 sm:pl-11 pr-3 sm:pr-4 py-2.5 sm:py-3 border-2 border-gray-200 rounded-lg sm:rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all text-gray-900 text-sm sm:text-base"
                         placeholder="Last Name"
                       />
                     </div>
@@ -312,19 +312,19 @@ export default function Register() {
 
                 {/* Email Field */}
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1.5 sm:mb-2">
                     Email Address
                   </label>
                   <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                      <Mail className="text-gray-400" size={20} />
+                    <div className="absolute inset-y-0 left-0 pl-3 sm:pl-4 flex items-center pointer-events-none">
+                      <Mail className="text-gray-400" size={18} />
                     </div>
                     <input
                       type="email"
                       required
                       value={formData.email}
                       onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                      className="w-full pl-12 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all text-gray-900"
+                      className="w-full pl-10 sm:pl-12 pr-3 sm:pr-4 py-2.5 sm:py-3 border-2 border-gray-200 rounded-lg sm:rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all text-gray-900 text-sm sm:text-base"
                       placeholder="you@example.com"
                     />
                   </div>
@@ -332,18 +332,18 @@ export default function Register() {
 
                 {/* Phone Field */}
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1.5 sm:mb-2">
                     Phone Number (Optional)
                   </label>
                   <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                      <Phone className="text-gray-400" size={20} />
+                    <div className="absolute inset-y-0 left-0 pl-3 sm:pl-4 flex items-center pointer-events-none">
+                      <Phone className="text-gray-400" size={18} />
                     </div>
                     <input
                       type="tel"
                       value={formData.phone}
                       onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                      className="w-full pl-12 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all text-gray-900"
+                      className="w-full pl-10 sm:pl-12 pr-3 sm:pr-4 py-2.5 sm:py-3 border-2 border-gray-200 rounded-lg sm:rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all text-gray-900 text-sm sm:text-base"
                       placeholder="+234 800 000 0000"
                     />
                   </div>
@@ -351,14 +351,14 @@ export default function Register() {
 
                 {/* Student Category */}
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1.5 sm:mb-2">
                     Student Category
                   </label>
                   <select
                     required
                     value={formData.studentCategory}
                     onChange={(e) => setFormData({ ...formData, studentCategory: e.target.value })}
-                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all text-gray-900"
+                    className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border-2 border-gray-200 rounded-lg sm:rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all text-gray-900 text-sm sm:text-base"
                   >
                     <option value="">Select your category</option>
                     <option value="SCIENCE">Science</option>
@@ -369,25 +369,26 @@ export default function Register() {
 
                 {/* Password Field */}
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1.5 sm:mb-2">
                     Password
                   </label>
                   <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                      <Lock className="text-gray-400" size={20} />
+                    <div className="absolute inset-y-0 left-0 pl-3 sm:pl-4 flex items-center pointer-events-none">
+                      <Lock className="text-gray-400" size={18} />
                     </div>
                     <input
                       type={showPassword ? 'text' : 'password'}
                       required
                       value={formData.password}
                       onChange={(e) => handlePasswordChange(e.target.value)}
-                      className="w-full pl-12 pr-12 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all text-gray-900"
+                      className="w-full pl-10 sm:pl-12 pr-10 sm:pr-12 py-2.5 sm:py-3 border-2 border-gray-200 rounded-lg sm:rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all text-gray-900 text-sm sm:text-base"
                       placeholder="••••••••"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600 transition-colors"
+                      className="absolute inset-y-0 right-0 pr-3 sm:pr-4 flex items-center text-gray-400 hover:text-gray-600 transition-colors"
+                      aria-label="Toggle password visibility"
                     >
                       {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                     </button>
@@ -407,9 +408,9 @@ export default function Register() {
                           {getPasswordStrengthText()}
                         </span>
                       </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div className="w-full bg-gray-200 rounded-full h-1.5 sm:h-2">
                         <div
-                          className={`h-2 rounded-full transition-all ${getPasswordStrengthColor()}`}
+                          className={`h-1.5 sm:h-2 rounded-full transition-all ${getPasswordStrengthColor()}`}
                           style={{ width: `${passwordStrength}%` }}
                         ></div>
                       </div>
@@ -419,25 +420,26 @@ export default function Register() {
 
                 {/* Confirm Password Field */}
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1.5 sm:mb-2">
                     Confirm Password
                   </label>
                   <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                      <Lock className="text-gray-400" size={20} />
+                    <div className="absolute inset-y-0 left-0 pl-3 sm:pl-4 flex items-center pointer-events-none">
+                      <Lock className="text-gray-400" size={18} />
                     </div>
                     <input
                       type={showConfirmPassword ? 'text' : 'password'}
                       required
                       value={formData.confirmPassword}
                       onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                      className="w-full pl-12 pr-12 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all text-gray-900"
+                      className="w-full pl-10 sm:pl-12 pr-10 sm:pr-12 py-2.5 sm:py-3 border-2 border-gray-200 rounded-lg sm:rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all text-gray-900 text-sm sm:text-base"
                       placeholder="••••••••"
                     />
                     <button
                       type="button"
                       onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600 transition-colors"
+                      className="absolute inset-y-0 right-0 pr-3 sm:pr-4 flex items-center text-gray-400 hover:text-gray-600 transition-colors"
+                      aria-label="Toggle password visibility"
                     >
                       {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                     </button>
@@ -462,13 +464,13 @@ export default function Register() {
                 </div>
 
                 {/* Terms Checkbox */}
-                <div className="flex items-start gap-3">
+                <div className="flex items-start gap-2 sm:gap-3">
                   <input
                     type="checkbox"
                     required
-                    className="w-5 h-5 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500 mt-0.5"
+                    className="w-5 h-5 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500 mt-0.5 flex-shrink-0"
                   />
-                  <label className="text-sm text-gray-700">
+                  <label className="text-xs sm:text-sm text-gray-700">
                     I agree to the{' '}
                     <a href="#" className="text-indigo-600 hover:text-indigo-700 font-medium">
                       Terms of Service
@@ -484,24 +486,25 @@ export default function Register() {
                 <button
                   type="submit"
                   disabled={loading || formData.password !== formData.confirmPassword}
-                  className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold py-4 rounded-xl transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 group"
+                  className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold py-3 sm:py-4 rounded-lg sm:rounded-xl transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 group text-sm sm:text-base min-h-[44px]"
                 >
                   {loading ? (
                     <>
-                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                      Creating account...
+                      <div className="w-4 h-4 sm:w-5 sm:h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                      <span className="hidden sm:inline">Creating account...</span>
+                      <span className="sm:hidden">Creating</span>
                     </>
                   ) : (
                     <>
-                      Create Account
-                      <ArrowRight className="group-hover:translate-x-1 transition-transform" size={20} />
+                      <span>Create Account</span>
+                      <ArrowRight className="group-hover:translate-x-1 transition-transform hidden sm:inline" size={18} />
                     </>
                   )}
                 </button>
               </form>
 
               {/* Divider */}
-              <div className="relative my-6">
+              <div className="relative my-4 sm:my-6">
                 <div className="absolute inset-0 flex items-center">
                   <div className="w-full border-t border-gray-300"></div>
                 </div>
@@ -513,7 +516,7 @@ export default function Register() {
               {/* Sign In Link */}
               <Link
                 to="/login"
-                className="block w-full text-center py-3 border-2 border-gray-300 hover:border-indigo-600 text-gray-700 hover:text-indigo-600 font-semibold rounded-xl transition-all hover:shadow-md"
+                className="w-full text-center py-2.5 sm:py-3 border-2 border-gray-300 hover:border-indigo-600 text-gray-700 hover:text-indigo-600 font-semibold rounded-lg sm:rounded-xl transition-all hover:shadow-md text-sm sm:text-base min-h-[44px] flex items-center justify-center"
               >
                 Sign In Instead
               </Link>

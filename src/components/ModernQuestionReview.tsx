@@ -32,6 +32,7 @@ interface ModernQuestionReviewProps {
 
 export default function ModernQuestionReview({ answers, showReview }: ModernQuestionReviewProps) {
   const [expandedQuestions, setExpandedQuestions] = useState<Set<string>>(new Set());
+  const [filterType, setFilterType] = useState<'all' | 'correct' | 'incorrect'>('all');
 
   const toggleQuestion = (questionId: string) => {
     setExpandedQuestions(prev => {
@@ -54,62 +55,69 @@ export default function ModernQuestionReview({ answers, showReview }: ModernQues
     return styles[difficulty as keyof typeof styles] || 'bg-gray-100 text-gray-700 border-gray-200';
   };
 
-  const getDifficultyIcon = (difficulty: string) => {
-    const icons = {
-      EASY: '🌱',
-      MEDIUM: '⚡',
-      HARD: '🔥'
-    };
-    return icons[difficulty as keyof typeof icons] || '📝';
-  };
-
   if (!showReview) return null;
 
   const correctCount = answers.filter(a => a.isCorrect).length;
   const incorrectCount = answers.length - correctCount;
+
+  const filteredAnswers = answers.filter(answer => {
+    if (filterType === 'correct') return answer.isCorrect;
+    if (filterType === 'incorrect') return !answer.isCorrect;
+    return true;
+  });
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
-      className="space-y-6"
+      className="space-y-4 sm:space-y-6"
     >
       {/* Review Header */}
-      <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-2xl p-6 text-white shadow-xl">
-        <div className="flex items-center gap-3 mb-4">
-          <Book className="animate-pulse" size={32} />
-          <h2 className="text-3xl font-bold">Question Review</h2>
+      <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-2xl p-4 sm:p-6 text-white shadow-xl">
+        <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
+          <Book className="animate-pulse" size={24} />
+          <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold">Question Review</h2>
         </div>
-        <div className="flex gap-6 text-sm">
+        <div className="flex flex-col sm:flex-row gap-3 sm:gap-6 text-xs sm:text-sm">
           <div className="flex items-center gap-2">
-            <CheckCircle size={20} />
+            <CheckCircle size={18} />
             <span className="font-semibold">{correctCount} Correct</span>
           </div>
           <div className="flex items-center gap-2">
-            <XCircle size={20} />
+            <XCircle size={18} />
             <span className="font-semibold">{incorrectCount} Incorrect</span>
           </div>
         </div>
       </div>
 
       {/* Filter Tabs */}
-      <div className="flex gap-3 flex-wrap">
-        <button className="px-4 py-2 bg-white border-2 border-indigo-600 text-indigo-600 rounded-xl font-semibold hover:bg-indigo-50 transition-colors">
-          All ({answers.length})
-        </button>
-        <button className="px-4 py-2 bg-white border-2 border-gray-300 text-gray-700 rounded-xl font-semibold hover:bg-gray-50 transition-colors">
-          Correct ({correctCount})
-        </button>
-        <button className="px-4 py-2 bg-white border-2 border-gray-300 text-gray-700 rounded-xl font-semibold hover:bg-gray-50 transition-colors">
-          Incorrect ({incorrectCount})
-        </button>
+      <div className="flex gap-2 sm:gap-3 flex-wrap">
+        {['all', 'correct', 'incorrect'].map((type) => (
+          <button
+            key={type}
+            onClick={() => setFilterType(type as 'all' | 'correct' | 'incorrect')}
+            className={`px-3 sm:px-4 py-2 rounded-xl font-semibold transition-colors text-xs sm:text-sm ${
+              filterType === type
+                ? type === 'all'
+                  ? 'bg-indigo-600 text-white border-2 border-indigo-600'
+                  : type === 'correct'
+                  ? 'bg-green-600 text-white border-2 border-green-600'
+                  : 'bg-red-600 text-white border-2 border-red-600'
+                : 'bg-white border-2 border-gray-300 text-gray-700 hover:bg-gray-50'
+            }`}
+          >
+            {type === 'all' && `All (${answers.length})`}
+            {type === 'correct' && `Correct (${correctCount})`}
+            {type === 'incorrect' && `Incorrect (${incorrectCount})`}
+          </button>
+        ))}
       </div>
 
       {/* Questions List */}
-      <div className="space-y-4">
+      <div className="space-y-3 sm:space-y-4">
         <AnimatePresence mode="popLayout">
-          {answers.map((answer, idx) => {
+          {filteredAnswers.map((answer, idx) => {
             const correctOption = answer.question.options.find(opt => opt.isCorrect);
             const selectedOption = answer.question.options.find(opt => opt.id === answer.selectedAnswer);
             const isExpanded = expandedQuestions.has(answer.questionId);
@@ -129,45 +137,45 @@ export default function ModernQuestionReview({ answers, showReview }: ModernQues
                   }`}
                 >
                   {/* Question Header */}
-                  <div className="p-6">
-                    <div className="flex items-start gap-4">
+                  <div className="p-3 sm:p-4 lg:p-6">
+                    <div className="flex items-start gap-3 sm:gap-4">
                       {/* Status Icon */}
                       <motion.div
                         initial={{ scale: 0 }}
                         animate={{ scale: 1 }}
                         transition={{ delay: idx * 0.05 + 0.2, type: 'spring' }}
-                        className={`flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center ${
+                        className={`flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center ${
                           answer.isCorrect 
                             ? 'bg-green-100 text-green-600' 
                             : 'bg-red-100 text-red-600'
                         }`}
                       >
                         {answer.isCorrect ? (
-                          <CheckCircle size={28} />
+                          <CheckCircle size={24} />
                         ) : (
-                          <XCircle size={28} />
+                          <XCircle size={24} />
                         )}
                       </motion.div>
 
                       {/* Question Content */}
                       <div className="flex-1 min-w-0">
                         {/* Meta Information */}
-                        <div className="flex items-center gap-2 mb-3 flex-wrap">
-                          <span className="text-lg font-bold text-gray-900">Q{idx + 1}</span>
+                        <div className="flex items-center gap-2 mb-2 sm:mb-3 flex-wrap">
+                          <span className="font-bold text-gray-900 text-sm sm:text-base">Q{idx + 1}</span>
                           
-                          <span className="px-3 py-1 bg-gradient-to-r from-indigo-100 to-purple-100 text-indigo-700 rounded-lg text-xs font-bold">
+                          <span className="px-2 sm:px-3 py-0.5 sm:py-1 bg-gradient-to-r from-indigo-100 to-purple-100 text-indigo-700 rounded text-xs font-bold">
                             {answer.question.subject.name}
                           </span>
                           
-                          <span className={`px-3 py-1 rounded-lg text-xs font-bold border ${getDifficultyStyles(answer.question.difficulty)}`}>
-                            {getDifficultyIcon(answer.question.difficulty)} {answer.question.difficulty}
+                          <span className={`px-2 sm:px-3 py-0.5 sm:py-1 rounded text-xs font-bold border ${getDifficultyStyles(answer.question.difficulty)}`}>
+                            {answer.question.difficulty}
                           </span>
                           
                           {answer.isFlagged && (
                             <motion.span
                               initial={{ scale: 0 }}
                               animate={{ scale: 1 }}
-                              className="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-lg text-xs font-bold flex items-center gap-1"
+                              className="px-2 sm:px-3 py-0.5 sm:py-1 bg-yellow-100 text-yellow-700 rounded text-xs font-bold flex items-center gap-1"
                             >
                               <Flag size={12} fill="currentColor" />
                               Flagged
@@ -176,18 +184,18 @@ export default function ModernQuestionReview({ answers, showReview }: ModernQues
                         </div>
 
                         {/* Question Text */}
-                        <p className="text-gray-900 text-lg leading-relaxed mb-4">
+                        <p className="text-gray-900 text-sm sm:text-base leading-relaxed mb-3 sm:mb-4">
                           {answer.question.content}
                         </p>
 
                         {/* Quick Answer Display */}
                         <div className="space-y-2">
-                          <div className={`p-4 rounded-xl border-2 ${
+                          <div className={`p-2 sm:p-4 rounded-xl border-2 text-xs sm:text-sm ${
                             answer.isCorrect 
                               ? 'bg-green-50 border-green-200' 
                               : 'bg-red-50 border-red-200'
                           }`}>
-                            <p className="text-sm font-semibold text-gray-700 mb-1">Your Answer:</p>
+                            <p className="font-semibold text-gray-700 mb-1">Your Answer:</p>
                             <p className={`font-bold ${answer.isCorrect ? 'text-green-700' : 'text-red-700'}`}>
                               {selectedOption?.label}. {selectedOption?.content}
                             </p>
@@ -197,9 +205,9 @@ export default function ModernQuestionReview({ answers, showReview }: ModernQues
                             <motion.div
                               initial={{ opacity: 0, height: 0 }}
                               animate={{ opacity: 1, height: 'auto' }}
-                              className="p-4 bg-green-50 border-2 border-green-200 rounded-xl"
+                              className="p-2 sm:p-4 bg-green-50 border-2 border-green-200 rounded-xl text-xs sm:text-sm"
                             >
-                              <p className="text-sm font-semibold text-gray-700 mb-1">Correct Answer:</p>
+                              <p className="font-semibold text-gray-700 mb-1">Correct Answer:</p>
                               <p className="font-bold text-green-700">
                                 {correctOption.label}. {correctOption.content}
                               </p>
@@ -213,16 +221,16 @@ export default function ModernQuestionReview({ answers, showReview }: ModernQues
                             whileHover={{ scale: 1.02 }}
                             whileTap={{ scale: 0.98 }}
                             onClick={() => toggleQuestion(answer.questionId)}
-                            className="mt-4 flex items-center gap-2 text-indigo-600 hover:text-indigo-700 font-semibold text-sm"
+                            className="mt-3 sm:mt-4 flex items-center gap-2 text-indigo-600 hover:text-indigo-700 font-semibold text-xs sm:text-sm"
                           >
                             {isExpanded ? (
                               <>
-                                <ChevronUp size={18} />
+                                <ChevronUp size={16} />
                                 Hide Details
                               </>
                             ) : (
                               <>
-                                <ChevronDown size={18} />
+                                <ChevronDown size={16} />
                                 View All Options & Explanation
                               </>
                             )}
@@ -242,11 +250,11 @@ export default function ModernQuestionReview({ answers, showReview }: ModernQues
                         transition={{ duration: 0.3 }}
                         className="overflow-hidden"
                       >
-                        <div className="px-6 pb-6 border-t border-gray-100 pt-6 space-y-4">
+                        <div className="px-3 sm:px-4 lg:px-6 pb-3 sm:pb-4 lg:pb-6 border-t border-gray-100 pt-3 sm:pt-4 lg:pt-6 space-y-3 sm:space-y-4">
                           {/* All Options */}
                           <div>
-                            <h4 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
-                              <Book size={18} />
+                            <h4 className="font-bold text-gray-900 mb-2 sm:mb-3 flex items-center gap-2 text-xs sm:text-sm lg:text-base">
+                              <Book size={16} />
                               All Options
                             </h4>
                             <div className="space-y-2">
@@ -259,7 +267,7 @@ export default function ModernQuestionReview({ answers, showReview }: ModernQues
                                     key={option.id}
                                     initial={{ opacity: 0, x: -20 }}
                                     animate={{ opacity: 1, x: 0 }}
-                                    className={`p-3 rounded-lg border-2 ${
+                                    className={`p-2 sm:p-3 rounded-lg border-2 text-xs sm:text-sm ${
                                       isCorrectOpt
                                         ? 'bg-green-50 border-green-300'
                                         : isSelected
@@ -267,8 +275,8 @@ export default function ModernQuestionReview({ answers, showReview }: ModernQues
                                         : 'bg-gray-50 border-gray-200'
                                     }`}
                                   >
-                                    <div className="flex items-center gap-3">
-                                      <span className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${
+                                    <div className="flex items-center gap-2 sm:gap-3">
+                                      <span className={`w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center font-bold text-xs flex-shrink-0 ${
                                         isCorrectOpt
                                           ? 'bg-green-500 text-white'
                                           : isSelected
@@ -283,10 +291,10 @@ export default function ModernQuestionReview({ answers, showReview }: ModernQues
                                         {option.content}
                                       </span>
                                       {isCorrectOpt && (
-                                        <CheckCircle className="text-green-600" size={20} />
+                                        <CheckCircle className="text-green-600 flex-shrink-0" size={18} />
                                       )}
                                       {isSelected && !isCorrectOpt && (
-                                        <XCircle className="text-red-600" size={20} />
+                                        <XCircle className="text-red-600 flex-shrink-0" size={18} />
                                       )}
                                     </div>
                                   </motion.div>
@@ -301,15 +309,15 @@ export default function ModernQuestionReview({ answers, showReview }: ModernQues
                               initial={{ opacity: 0, y: 10 }}
                               animate={{ opacity: 1, y: 0 }}
                               transition={{ delay: 0.2 }}
-                              className="p-4 bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-xl"
+                              className="p-3 sm:p-4 bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-xl"
                             >
-                              <div className="flex items-start gap-3">
-                                <div className="bg-blue-500 p-2 rounded-lg">
-                                  <Lightbulb className="text-white" size={20} />
+                              <div className="flex items-start gap-2 sm:gap-3">
+                                <div className="bg-blue-500 p-1.5 rounded-lg flex-shrink-0">
+                                  <Lightbulb className="text-white" size={16} />
                                 </div>
                                 <div className="flex-1">
-                                  <h4 className="font-bold text-blue-900 mb-2">Explanation</h4>
-                                  <p className="text-blue-800 leading-relaxed">
+                                  <h4 className="font-bold text-blue-900 mb-1 text-xs sm:text-sm">Explanation</h4>
+                                  <p className="text-blue-800 leading-relaxed text-xs sm:text-sm">
                                     {answer.question.explanation}
                                   </p>
                                 </div>
