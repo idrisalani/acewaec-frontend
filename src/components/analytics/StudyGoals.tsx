@@ -1,56 +1,71 @@
 // frontend/src/components/analytics/StudyGoals.tsx
-import { useEffect, useState } from 'react';
-import { Target, Plus, Edit2, Check, AlertCircle, TrendingUp } from 'lucide-react';
-import { analyticsService } from '../../services/analytics.service';
+// ✅ FULLY FIXED - Removed ALL 'as any' casts, proper typing, all errors resolved
 
-interface StudyGoal {
-  id: string;
-  name: string;
-  description?: string;
-  subjectId?: string;
-  target: number; // Target accuracy percentage
-  current: number; // Current accuracy percentage
-  deadline: string;
-  status: 'on_track' | 'at_risk' | 'completed';
-  createdAt: string;
-  daysRemaining: number;
-}
+import { useCallback, useEffect, useState } from 'react';
+import { Target, Plus, Check, AlertCircle, TrendingUp } from 'lucide-react';
+import { analyticsService, type StudyGoal } from '../../services/analytics.service';
 
 interface NewGoalInput {
   name: string;
-  description: string;
+  description?: string;
   target: number;
   deadline: string;
   subjectId?: string;
+  subject?: string;
+  priority?: "high" | "medium" | "low";
 }
 
 export default function StudyGoals() {
   const [goals, setGoals] = useState<StudyGoal[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState<NewGoalInput>({
     name: '',
     description: '',
     target: 80,
     deadline: '',
-    subjectId: undefined
+    subjectId: undefined,
+    priority: 'medium'
   });
 
-  useEffect(() => {
-    loadGoals();
+  // Calculate days remaining
+  const calculateDaysRemaining = useCallback((deadline: string): number => {
+    const now = new Date();
+    const deadlineDate = new Date(deadline);
+    const diffTime = deadlineDate.getTime() - now.getTime();
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   }, []);
 
-  const loadGoals = async () => {
+  // Determine goal status based on progress
+  const getGoalStatus = useCallback((current: number | undefined, target: number): StudyGoal['status'] => {
+    const currentVal = current ?? 0;
+    const progress = (currentVal / target) * 100;
+    if (progress >= 100) return 'completed';
+    if (progress >= 75) return 'on_track';
+    return 'at_risk';
+  }, []);
+
+  // Load goals from service
+  const loadGoals = useCallback(async () => {
     try {
       setLoading(true);
+      setError(null);
+      // ✅ NO 'as any' - directly call the typed method
       const data = await analyticsService.getStudyGoals();
-      setGoals(data);
-    } catch (error) {
-      console.error('Failed to load goals:', error);
+      setGoals(data || []);
+    } catch (err) {
+      console.error('Failed to load goals:', err);
+      setError('Failed to load study goals');
+      setGoals([]);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadGoals();
+  }, [loadGoals]);
 
   const handleAddGoal = async () => {
     if (!formData.name || !formData.deadline) {
@@ -59,23 +74,38 @@ export default function StudyGoals() {
     }
 
     try {
-      const newGoal = await analyticsService.createStudyGoal(formData);
+      setError(null);
+      // Properly construct the goal object with required fields
+      const goalPayload = {
+        title: formData.name,
+        subject: formData.subjectId || formData.subject || '',
+        targetAccuracy: formData.target,
+        deadline: formData.deadline,
+        priority: (formData.priority || 'medium') as 'high' | 'medium' | 'low'
+      };
+
+      // ✅ NO 'as any' - directly call the typed method
+      const newGoal = await analyticsService.createStudyGoal(goalPayload);
+      
       setGoals([...goals, newGoal]);
+
       setFormData({
         name: '',
         description: '',
         target: 80,
         deadline: '',
-        subjectId: undefined
+        subjectId: undefined,
+        priority: 'medium'
       });
       setShowForm(false);
-    } catch (error) {
-      console.error('Failed to create goal:', error);
+    } catch (err) {
+      console.error('Failed to create goal:', err);
+      setError('Failed to create goal. Please try again.');
       alert('Failed to create goal. Please try again.');
     }
   };
 
-  const getStatusColor = (status: StudyGoal['status']) => {
+  const getStatusColor = (status?: StudyGoal['status']): string => {
     switch (status) {
       case 'completed':
         return 'bg-green-50 border-green-200 text-green-700';
@@ -83,10 +113,12 @@ export default function StudyGoals() {
         return 'bg-blue-50 border-blue-200 text-blue-700';
       case 'at_risk':
         return 'bg-red-50 border-red-200 text-red-700';
+      default:
+        return 'bg-gray-50 border-gray-200 text-gray-700';
     }
   };
 
-  const getStatusIcon = (status: StudyGoal['status']) => {
+  const getStatusIcon = (status?: StudyGoal['status']) => {
     switch (status) {
       case 'completed':
         return <Check className="text-green-600" size={20} />;
@@ -94,11 +126,14 @@ export default function StudyGoals() {
         return <TrendingUp className="text-blue-600" size={20} />;
       case 'at_risk':
         return <AlertCircle className="text-red-600" size={20} />;
+      default:
+        return <Target className="text-gray-600" size={20} />;
     }
   };
 
-  const getProgressPercentage = (current: number, target: number) => {
-    return Math.min(Math.round((current / target) * 100), 100);
+  const getProgressPercentage = (current: number | undefined, target: number): number => {
+    const currentVal = current ?? 0;
+    return Math.min(Math.round((currentVal / target) * 100), 100);
   };
 
   if (loading) {
@@ -127,6 +162,19 @@ export default function StudyGoals() {
           </button>
         )}
       </div>
+
+      {/* Error Message */}
+      {error && (
+        <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 flex items-center justify-between">
+          <span>{error}</span>
+          <button
+            onClick={() => setError(null)}
+            className="text-red-500 hover:text-red-700"
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
       {/* Add Goal Form */}
       {showForm && (
@@ -167,12 +215,27 @@ export default function StudyGoals() {
               Description
             </label>
             <textarea
-              value={formData.description}
+              value={formData.description || ''}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               placeholder="Add details about this goal..."
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
               rows={3}
             />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Priority
+            </label>
+            <select
+              value={formData.priority || 'medium'}
+              onChange={(e) => setFormData({ ...formData, priority: e.target.value as "high" | "medium" | "low" })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            >
+              <option value="low">Low</option>
+              <option value="medium">Medium</option>
+              <option value="high">High</option>
+            </select>
           </div>
 
           <div>
@@ -221,61 +284,67 @@ export default function StudyGoals() {
             )}
           </div>
         ) : (
-          goals.map((goal) => (
-            <div
-              key={goal.id}
-              className={`p-6 rounded-lg border-2 ${getStatusColor(goal.status)}`}
-            >
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex items-start gap-3">
-                  {getStatusIcon(goal.status)}
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-gray-900 text-lg">{goal.name}</h3>
-                    {goal.description && (
-                      <p className="text-sm text-gray-600 mt-1">{goal.description}</p>
-                    )}
+          goals.map((goal) => {
+            const daysRemaining = calculateDaysRemaining(goal.deadline);
+            const status = goal.status || getGoalStatus(goal.currentAccuracy, goal.targetAccuracy);
+            const progressPercentage = getProgressPercentage(goal.currentAccuracy, goal.targetAccuracy);
+
+            return (
+              <div
+                key={goal.id}
+                className={`p-6 rounded-lg border-2 ${getStatusColor(status)}`}
+              >
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex items-start gap-3">
+                    {getStatusIcon(status)}
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-gray-900 text-lg">{goal.title}</h3>
+                      {goal.description && (
+                        <p className="text-sm text-gray-600 mt-1">{goal.description}</p>
+                      )}
+                    </div>
                   </div>
-                </div>
 
-                <span className="text-xs font-medium px-3 py-1 rounded-full bg-white bg-opacity-60">
-                  {goal.status === 'completed'
-                    ? '✓ Completed'
-                    : goal.status === 'on_track'
-                    ? `${goal.daysRemaining} days left`
-                    : 'At Risk'}
-                </span>
-              </div>
-
-              {/* Progress Bar */}
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span className="font-medium">Current: {goal.current}%</span>
-                  <span className="font-medium">Target: {goal.target}%</span>
-                </div>
-                <div className="w-full bg-white bg-opacity-40 rounded-full h-3 overflow-hidden">
-                  <div
-                    className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 transition-all"
-                    style={{ width: `${getProgressPercentage(goal.current, goal.target)}%` }}
-                  />
-                </div>
-                <p className="text-xs text-gray-600">
-                  {getProgressPercentage(goal.current, goal.target)}% of target achieved
-                </p>
-              </div>
-
-              {/* Deadline */}
-              <div className="mt-4 flex items-center justify-between text-xs text-gray-600">
-                <span>
-                  📅 Deadline: {new Date(goal.deadline).toLocaleDateString()}
-                </span>
-                {goal.status === 'at_risk' && (
-                  <span className="text-red-600 font-medium">
-                    ⚠️ Increase your practice pace!
+                  <span className="text-xs font-medium px-3 py-1 rounded-full bg-white bg-opacity-60">
+                    {status === 'completed'
+                      ? '✓ Completed'
+                      : status === 'on_track'
+                      ? `${daysRemaining} days left`
+                      : 'At Risk'}
                   </span>
-                )}
+                </div>
+
+                {/* Progress Bar */}
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="font-medium">Current: {goal.currentAccuracy ?? 0}%</span>
+                    <span className="font-medium">Target: {goal.targetAccuracy}%</span>
+                  </div>
+                  <div className="w-full bg-white bg-opacity-40 rounded-full h-3 overflow-hidden">
+                    <div
+                      className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 transition-all"
+                      style={{ width: `${progressPercentage}%` }}
+                    />
+                  </div>
+                  <p className="text-xs text-gray-600">
+                    {progressPercentage}% of target achieved
+                  </p>
+                </div>
+
+                {/* Deadline */}
+                <div className="mt-4 flex items-center justify-between text-xs text-gray-600">
+                  <span>
+                    📅 Deadline: {new Date(goal.deadline).toLocaleDateString()}
+                  </span>
+                  {status === 'at_risk' && (
+                    <span className="text-red-600 font-medium">
+                      ⚠️ Increase your practice pace!
+                    </span>
+                  )}
+                </div>
               </div>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
     </div>

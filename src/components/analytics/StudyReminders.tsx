@@ -1,6 +1,6 @@
 // frontend/src/components/analytics/StudyReminders.tsx
 import { useEffect, useState } from 'react';
-import { Bell, Clock, Settings, X, Check, RotateCw } from 'lucide-react';
+import { Bell, Clock, Settings, X, Check } from 'lucide-react';
 
 interface Reminder {
   id: string;

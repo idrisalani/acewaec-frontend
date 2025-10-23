@@ -45,6 +45,9 @@ export default function PracticeSetup() {
   const [topics, setTopics] = useState<Topic[]>([]);
   const [loading, setLoading] = useState(false);
   const [totalAvailableQuestions, setTotalAvailableQuestions] = useState(0);
+  const [userCategory, setUserCategory] = useState<string>(''); // ✅ NEW
+  const [isLoadingUserData, setIsLoadingUserData] = useState(true); // ✅ NEW
+  
   const [config, setConfig] = useState<PracticeConfig>({
     subjectIds: [],
     topicIds: [],
@@ -78,10 +81,40 @@ export default function PracticeSetup() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [config.subjectIds, config.topicIds, subjects, topics]);
 
+  // ✅ NEW: Load user's registered category on component mount
+  useEffect(() => {
+    const loadUserProfile = async () => {
+      try {
+        const userStr = localStorage.getItem('user');
+        if (userStr) {
+          const user = JSON.parse(userStr);
+          console.log('✅ User loaded from storage:', user);
+          
+          if (user?.studentCategory) {
+            setUserCategory(user.studentCategory);
+            // Auto-set to user's category
+            setConfig(prev => ({ 
+              ...prev, 
+              category: user.studentCategory 
+            }));
+            console.log('✅ User category auto-set to:', user.studentCategory);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load user profile:', error);
+      } finally {
+        setIsLoadingUserData(false);
+      }
+    };
+
+    loadUserProfile();
+  }, []);
+
   useEffect(() => {
     loadSubjects();
   }, []);
 
+  // ✅ MODIFIED: Only fetch subjects for the user's category
   useEffect(() => {
     if (config.category) {
       const fetchCategorySubjects = async () => {
@@ -94,7 +127,7 @@ export default function PracticeSetup() {
             sum + (subject.questionCount || subject._count?.questions || 0), 0
           );
 
-          console.log('✅ Total questions:', total);
+          console.log('✅ Total questions for category:', total);
           setTotalAvailableQuestions(total);
 
           setConfig(prev => ({
@@ -129,7 +162,7 @@ export default function PracticeSetup() {
   const loadSubjects = async () => {
     try {
       const data = await practiceService.getSubjects();
-      console.log('✅ Loaded subjects:', data);
+      console.log('✅ Loaded all subjects:', data);
       setAllSubjects(data);
       setSubjects(data);
     } catch (error) {
@@ -199,71 +232,75 @@ export default function PracticeSetup() {
     }
   };
 
+  // ✅ NEW: Helper to get selected subject name for summary
   const selectedSubject = subjects.find(s => config.subjectIds.includes(s.id));
-  const availableQuestions = getAvailableQuestions();
+
+  // Show loading while fetching user data
+  if (isLoadingUserData) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-purple-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading your profile...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50">
-      {/* Header/Navigation */}
-      <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-lg border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4">
-          <div className="flex items-center justify-between">
-            <button
-              onClick={() => navigate('/dashboard')}
-              className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
-            >
-              <Home size={20} />
-              <span className="hidden sm:inline text-sm font-medium">Dashboard</span>
-            </button>
-            <h1 className="text-lg sm:text-2xl font-bold text-center flex-1 flex items-center justify-center gap-2">
-              <GraduationCap className="text-indigo-600" size={24} />
-              <span className="hidden sm:inline">Practice Setup</span>
-              <span className="sm:hidden">Practice</span>
-            </h1>
-            <div className="w-8"></div>
-          </div>
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-purple-50 pt-20 pb-12 px-3 sm:px-4">
+      <main className="max-w-6xl mx-auto">
+        <div className="mb-8">
+          <button
+            onClick={() => navigate('/dashboard')}
+            className="flex items-center gap-2 text-indigo-600 hover:text-indigo-700 font-medium transition-colors"
+          >
+            <Home size={20} />
+            Back to Dashboard
+          </button>
         </div>
-      </header>
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
-          {/* Form Section */}
+        <div className="grid lg:grid-cols-3 gap-6 lg:gap-8">
           <div className="lg:col-span-2">
             <div className="bg-white rounded-2xl shadow-xl p-6 sm:p-8">
-              <form onSubmit={handleSubmit} className="space-y-6 sm:space-y-8">
-                {/* STEP 1: Select Category */}
-                <div>
-                  <div className="flex items-center gap-2 sm:gap-3 mb-4">
-                    <div className="w-8 h-8 bg-indigo-600 text-white rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0">
-                      1
-                    </div>
-                    <label className="flex items-center gap-2 text-base sm:text-lg font-semibold text-gray-900">
-                      <BookOpen className="text-indigo-600" size={20} />
-                      Select Category
-                    </label>
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    {['Science', 'Art', 'Commercial'].map(category => (
-                      <button
-                        key={category}
-                        type="button"
-                        className={`p-4 border-2 rounded-xl transition-all text-center ${
-                          config.category === category
-                            ? 'border-indigo-600 bg-indigo-50 ring-2 ring-indigo-200 transform scale-105'
-                            : 'border-gray-200 hover:border-indigo-300 hover:bg-gray-50'
-                        }`}
-                        onClick={() => setConfig(prev => ({ ...prev, category }))}
-                      >
-                        <p className="font-semibold text-gray-900">{category}</p>
-                      </button>
-                    ))}
-                  </div>
-                </div>
+              <div className="mb-8">
+                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
+                  Practice Setup
+                </h1>
+                <p className="text-gray-600">Configure your practice session</p>
+              </div>
 
-                {config.category && (
+              <form onSubmit={handleSubmit} className="space-y-8">
+                {/* ✅ MODIFIED: Show category section based on user data */}
+                {userCategory ? (
+                  // ✅ NEW: User's category is already selected and shown as read-only
                   <>
-                    {/* STEP 2: Question Count */}
+                    {/* Read-only user category display */}
+                    <div>
+                      <div className="flex items-center gap-2 sm:gap-3 mb-4">
+                        <div className="w-8 h-8 bg-indigo-600 text-white rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0">
+                          1
+                        </div>
+                        <label className="text-base sm:text-lg font-semibold text-gray-900">
+                          Your Category
+                        </label>
+                      </div>
+                      <div className="p-4 bg-gradient-to-br from-indigo-50 to-purple-50 border-2 border-indigo-300 rounded-xl">
+                        <div className="text-center">
+                          <p className="text-lg sm:text-xl font-bold text-indigo-700 mb-2">
+                            {userCategory}
+                          </p>
+                          <p className="text-xs sm:text-sm text-indigo-600">
+                            ✓ This is your registered category
+                          </p>
+                          <p className="text-xs text-gray-600 mt-2">
+                            All subjects below are for <span className="font-semibold">{userCategory}</span>
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* STEP 2: Select Number of Questions */}
                     <div>
                       <div className="flex items-center gap-2 sm:gap-3 mb-4">
                         <div className="w-8 h-8 bg-indigo-600 text-white rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0">
@@ -278,24 +315,19 @@ export default function PracticeSetup() {
                         <input
                           type="range"
                           min="1"
-                          max={Math.min(availableQuestions, 50)}
+                          max="50"
                           value={config.questionCount}
                           onChange={(e) => setConfig(prev => ({ ...prev, questionCount: parseInt(e.target.value) }))}
-                          className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                          className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
                         />
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm text-gray-600">Selected</span>
-                          <span className="text-lg sm:text-xl font-bold text-indigo-600">{config.questionCount}</span>
+                        <div className="flex justify-between items-center bg-indigo-50 p-3 sm:p-4 rounded-lg">
+                          <span className="text-sm sm:text-base text-gray-600">Questions:</span>
+                          <span className="text-lg sm:text-2xl font-bold text-indigo-600">{config.questionCount}</span>
                         </div>
-                        {availableQuestions > 0 && (
-                          <p className="text-xs sm:text-sm text-gray-500">
-                            Available: {availableQuestions} questions
-                          </p>
-                        )}
                       </div>
                     </div>
 
-                    {/* STEP 3: Duration Toggle */}
+                    {/* STEP 3: Duration Settings */}
                     <div>
                       <div className="flex items-center gap-2 sm:gap-3 mb-4">
                         <div className="w-8 h-8 bg-indigo-600 text-white rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0">
@@ -307,29 +339,32 @@ export default function PracticeSetup() {
                         </label>
                       </div>
                       <div className="space-y-3">
-                        <label className="flex items-center gap-2 cursor-pointer">
+                        <label className="flex items-center gap-3 p-3 sm:p-4 bg-gray-50 rounded-lg border-2 border-gray-200 hover:border-indigo-300 transition-colors cursor-pointer">
                           <input
                             type="checkbox"
                             checked={config.hasDuration}
                             onChange={(e) => setConfig(prev => ({ ...prev, hasDuration: e.target.checked }))}
-                            className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500"
+                            className="w-5 h-5 text-indigo-600 rounded"
                           />
-                          <span className="text-sm sm:text-base text-gray-700">Timed Practice</span>
+                          <span className="text-sm sm:text-base text-gray-700 font-medium">Set time limit</span>
                         </label>
+
                         {config.hasDuration && (
-                          <select
-                            className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all text-sm sm:text-base"
-                            value={config.duration}
-                            onChange={(e) => setConfig(prev => ({ ...prev, duration: parseInt(e.target.value) }))}
-                          >
-                            <option value="10">10 Minutes</option>
-                            <option value="20">20 Minutes</option>
-                            <option value="30">30 Minutes</option>
-                            <option value="45">45 Minutes</option>
-                            <option value="60">1 Hour</option>
-                            <option value="90">1.5 Hours</option>
-                            <option value="120">2 Hours</option>
-                          </select>
+                          <div className="space-y-2">
+                            <input
+                              type="range"
+                              min="5"
+                              max="180"
+                              step="5"
+                              value={config.duration}
+                              onChange={(e) => setConfig(prev => ({ ...prev, duration: parseInt(e.target.value) }))}
+                              className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                            />
+                            <div className="flex justify-between items-center bg-purple-50 p-3 sm:p-4 rounded-lg">
+                              <span className="text-sm sm:text-base text-gray-600">Time:</span>
+                              <span className="text-lg sm:text-2xl font-bold text-purple-600">{config.duration} min</span>
+                            </div>
+                          </div>
                         )}
                       </div>
                     </div>
@@ -455,21 +490,54 @@ export default function PracticeSetup() {
                       )}
                     </button>
                   </>
-                )}
+                ) : (
+                  // Show category selection if user category not loaded
+                  <>
+                    {/* STEP 1: Select Category */}
+                    <div>
+                      <div className="flex items-center gap-2 sm:gap-3 mb-4">
+                        <div className="w-8 h-8 bg-indigo-600 text-white rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0">
+                          1
+                        </div>
+                        <label className="flex items-center gap-2 text-base sm:text-lg font-semibold text-gray-900">
+                          <GraduationCap className="text-indigo-600" size={20} />
+                          <span>Select Category</span>
+                        </label>
+                      </div>
 
-                {/* Show prompt if no category selected */}
-                {!config.category && (
-                  <div className="flex flex-col items-center justify-center py-12 text-center">
-                    <div className="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mb-4">
-                      <ArrowRight className="text-indigo-600" size={32} />
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        {['SCIENCE', 'ART', 'COMMERCIAL'].map(category => (
+                          <button
+                            key={category}
+                            type="button"
+                            className={`p-4 border-2 rounded-xl transition-all text-center font-semibold ${
+                              config.category === category
+                                ? 'border-indigo-600 bg-indigo-50 ring-2 ring-indigo-200'
+                                : 'border-gray-200 hover:border-indigo-300 hover:bg-gray-50'
+                            }`}
+                            onClick={() => setConfig(prev => ({ ...prev, category }))}
+                          >
+                            {category}
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                    <p className="text-gray-600 text-base sm:text-lg font-medium">
-                      Select a category above to continue
-                    </p>
-                    <p className="text-gray-500 text-xs sm:text-sm mt-2">
-                      Choose Science, Art, or Commercial to see available subjects
-                    </p>
-                  </div>
+
+                    {/* Show prompt if no category selected */}
+                    {!config.category && (
+                      <div className="flex flex-col items-center justify-center py-12 text-center">
+                        <div className="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mb-4">
+                          <ArrowRight className="text-indigo-600" size={32} />
+                        </div>
+                        <p className="text-gray-600 text-base sm:text-lg font-medium">
+                          Select a category above to continue
+                        </p>
+                        <p className="text-gray-500 text-xs sm:text-sm mt-2">
+                          Choose Science, Art, or Commercial to see available subjects
+                        </p>
+                      </div>
+                    )}
+                  </>
                 )}
               </form>
             </div>

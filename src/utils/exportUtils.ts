@@ -1,6 +1,45 @@
 // frontend/src/utils/exportUtils.ts
+// ✅ FULLY FIXED - Removed ALL 'any' type usage with proper interfaces
+
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
+
+// ✅ FIXED: Define proper AutoTable options interface instead of 'any'
+interface AutoTableOptions {
+  startY?: number;
+  head?: string[][];
+  body?: (string | number)[][];
+  theme?: 'striped' | 'grid' | 'plain';
+  headStyles?: {
+    fillColor?: number[];
+    textColor?: number;
+  };
+  alternateRowStyles?: {
+    fillColor?: number[];
+  };
+  margin?: {
+    left?: number;
+    right?: number;
+  };
+}
+
+// ✅ FIXED: Define proper jsPDF extension interface instead of 'any'
+interface jsPDFWithAutoTable extends jsPDF {
+  autoTable: (options: AutoTableOptions) => jsPDFWithAutoTable;
+  lastAutoTable: {
+    finalY: number;
+  };
+}
+
+// ✅ FIXED: Extend jsPDF module with proper typing
+declare module 'jspdf' {
+  interface jsPDF {
+    autoTable: (options: AutoTableOptions) => jsPDF;
+    lastAutoTable: {
+      finalY: number;
+    };
+  }
+}
 
 interface DashboardData {
   stats: {
@@ -50,9 +89,10 @@ interface DashboardData {
 
 /**
  * Export dashboard data as PDF
+ * ✅ FIXED: Uses properly typed jsPDFWithAutoTable
  */
 export const exportToPDF = (data: DashboardData, studentName: string = 'Student') => {
-  const pdf = new jsPDF();
+  const pdf = new jsPDF() as jsPDFWithAutoTable;
   const pageWidth = pdf.internal.pageSize.getWidth();
   const pageHeight = pdf.internal.pageSize.getHeight();
   let yPosition = 15;
@@ -91,6 +131,7 @@ export const exportToPDF = (data: DashboardData, studentName: string = 'Student'
     overviewData.push(['Learning Streak', `${data.streak} days`]);
   }
 
+  // ✅ FIXED: No 'as any' needed - properly typed as jsPDFWithAutoTable
   pdf.autoTable({
     startY: yPosition,
     head: [overviewData[0]],
@@ -101,7 +142,7 @@ export const exportToPDF = (data: DashboardData, studentName: string = 'Student'
     margin: { left: 15, right: 15 }
   });
 
-  yPosition = (pdf as any).lastAutoTable.finalY + 10;
+  yPosition = pdf.lastAutoTable.finalY + 10;
 
   // Difficulty Breakdown
   pdf.setFontSize(14);
@@ -131,6 +172,7 @@ export const exportToPDF = (data: DashboardData, studentName: string = 'Student'
     ]
   ];
 
+  // ✅ FIXED: No 'as any' needed - properly typed
   pdf.autoTable({
     startY: yPosition,
     head: [difficultyData[0]],
@@ -141,7 +183,7 @@ export const exportToPDF = (data: DashboardData, studentName: string = 'Student'
     margin: { left: 15, right: 15 }
   });
 
-  yPosition = (pdf as any).lastAutoTable.finalY + 10;
+  yPosition = pdf.lastAutoTable.finalY + 10;
 
   // Subject Breakdown
   if (data.stats.subjectBreakdown.length > 0) {
@@ -165,6 +207,7 @@ export const exportToPDF = (data: DashboardData, studentName: string = 'Student'
       ])
     ];
 
+    // ✅ FIXED: No 'as any' needed - properly typed
     pdf.autoTable({
       startY: yPosition,
       head: [subjectData[0]],
@@ -175,7 +218,7 @@ export const exportToPDF = (data: DashboardData, studentName: string = 'Student'
       margin: { left: 15, right: 15 }
     });
 
-    yPosition = (pdf as any).lastAutoTable.finalY + 10;
+    yPosition = pdf.lastAutoTable.finalY + 10;
   }
 
   // Peer Comparison
@@ -196,6 +239,7 @@ export const exportToPDF = (data: DashboardData, studentName: string = 'Student'
       [`Percentile Rank`, `Top ${100 - data.peerComparison.percentile}%`, '-']
     ];
 
+    // ✅ FIXED: No 'as any' needed - properly typed
     pdf.autoTable({
       startY: yPosition,
       head: [comparisonData[0]],

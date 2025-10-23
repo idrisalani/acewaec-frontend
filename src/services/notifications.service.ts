@@ -1,6 +1,13 @@
 // frontend/src/services/notifications.service.ts
 // ✅ PREMIUM FEATURE - Smart reminders and notifications system
 
+// ✅ Fixed: Add proper process type definition for Node.js env vars
+declare const process: {
+  env: {
+    REACT_APP_API_URL?: string;
+  };
+};
+
 interface Notification {
   id: string;
   type: 'reminder' | 'achievement' | 'recommendation' | 'streak' | 'goal';
@@ -21,8 +28,34 @@ interface ReminderSettings {
   emailNotifications: boolean;
 }
 
+// ✅ Fixed: Define custom NotificationOptions type that matches our needs
+interface CustomNotificationOptions {
+  body?: string;
+  icon?: string;
+  badge?: string;
+  tag?: string;
+  requireInteraction?: boolean;
+  actions?: Array<{
+    action: string;
+    title: string;
+  }>;
+}
+
+// ✅ FIXED: Proper type for reminder data instead of 'any'
+interface ReminderData {
+  [key: string]: string | number | boolean | undefined;
+}
+
+// ✅ FIXED: Type-safe schedule reminder response
+interface ScheduleReminderResponse {
+  success: boolean;
+  reminderId: string;
+}
+
 class NotificationsService {
-  private apiBase = process.env.REACT_APP_API_URL || 'http://localhost:3001';
+  private apiBase = typeof process !== 'undefined' && process.env.REACT_APP_API_URL 
+    ? process.env.REACT_APP_API_URL 
+    : 'http://localhost:3001';
 
   /**
    * Get all notifications for the user
@@ -97,12 +130,13 @@ class NotificationsService {
 
   /**
    * Create a reminder for a specific time
+   * ✅ FIXED: Replaced 'any' with proper ReminderData type
    */
   async scheduleReminder(
     reminderType: 'daily' | 'weekly' | 'goal_deadline' | 'streak_danger',
     time: string,
-    data?: any
-  ): Promise<{ success: boolean; reminderId: string }> {
+    data?: ReminderData
+  ): Promise<ScheduleReminderResponse> {
     try {
       const response = await fetch(`${this.apiBase}/api/notifications/schedule`, {
         method: 'POST',
@@ -126,18 +160,35 @@ class NotificationsService {
   /**
    * Send browser notification (if permitted)
    */
-  async sendBrowserNotification(title: string, options?: NotificationOptions): Promise<void> {
+  async sendBrowserNotification(title: string, options?: CustomNotificationOptions): Promise<void> {
     if (!('Notification' in window)) {
       console.log('Notifications not supported');
       return;
     }
 
     if (Notification.permission === 'granted') {
-      new Notification(title, options);
+      // ✅ Fixed: Create notification without custom actions (not supported in all browsers)
+      const notificationOptions: NotificationOptions = {
+        body: options?.body,
+        icon: options?.icon,
+        badge: options?.badge,
+        tag: options?.tag,
+        requireInteraction: options?.requireInteraction,
+      };
+
+      new Notification(title, notificationOptions);
     } else if (Notification.permission !== 'denied') {
       const permission = await Notification.requestPermission();
       if (permission === 'granted') {
-        new Notification(title, options);
+        const notificationOptions: NotificationOptions = {
+          body: options?.body,
+          icon: options?.icon,
+          badge: options?.badge,
+          tag: options?.tag,
+          requireInteraction: options?.requireInteraction,
+        };
+
+        new Notification(title, notificationOptions);
       }
     }
   }
@@ -204,16 +255,6 @@ class NotificationsService {
       icon: '/icons/acewaec-logo.png',
       badge: '/icons/acewaec-badge.png',
       tag: 'daily-reminder',
-      actions: [
-        {
-          action: 'practice',
-          title: 'Start Practice',
-        },
-        {
-          action: 'snooze',
-          title: 'Remind Later',
-        },
-      ],
     });
   }
 
