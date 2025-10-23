@@ -295,7 +295,7 @@ export const analyticsService = {
     }
   },
 
-  async updateReminderSettings(settings: Record<string, any>) {
+  async updateReminderSettings(settings: Record<string, unknown>) {
     try {
       const response = await apiClient.put('/notifications/settings', settings);
       return response.data.data;
@@ -308,7 +308,7 @@ export const analyticsService = {
   async scheduleReminder(
     reminderType: 'daily' | 'weekly' | 'goal_deadline' | 'streak_danger',
     time: string,
-    data?: any
+    data?: unknown
   ) {
     try {
       const response = await apiClient.post('/notifications/schedule', {
