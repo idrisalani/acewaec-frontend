@@ -22,13 +22,16 @@ import {
 import Navigation from '../components/layout/Navigation';
 import { analyticsService } from '../services/analytics.service';
 
-// ✅ Import our properly typed components
 import {
     StudyGoalsCard,
     StreakStats,
     AccuracyComparison,
-    type StudyGoal,
+    type StudyGoal as UIStudyGoal,  // Rename for UI
 } from '../components/analytics/AnalyticsComponents';
+
+import {
+    type StudyGoal as ServiceStudyGoal,  // Rename for service
+} from '../services/analytics.service';
 
 interface Recommendation {
     type: 'strength' | 'weakness' | 'practice' | 'mastery';
@@ -95,6 +98,27 @@ interface DashboardDataEnhanced {
     peerAverage: number;
 }
 
+/**
+ * ✅ Correct converter: Service goal → Dashboard enhanced goal
+ * Maps ServiceStudyGoal to EnhancedStudyGoal for the dashboard
+ */
+function convertServiceGoalToEnhancedGoal(
+    serviceGoal: ServiceStudyGoal
+): EnhancedStudyGoal {
+    return {
+        id: serviceGoal.id,
+        title: serviceGoal.title,  // Same field
+        targetAccuracy: serviceGoal.targetAccuracy,  // Same field
+        currentAccuracy: serviceGoal.currentAccuracy ?? 0,  // Default to 0
+        deadline: typeof serviceGoal.deadline === 'string'
+            ? new Date(serviceGoal.deadline)
+            : serviceGoal.deadline,  // Convert to Date
+        subject: serviceGoal.subject || '',
+        completed: serviceGoal.status === 'completed',  // Convert boolean
+        priority: serviceGoal.priority
+    };
+}
+
 export default function AnalyticsDashboard() {
     const navigate = useNavigate();
     const [data, setData] = useState<DashboardDataEnhanced | null>(null);
@@ -152,32 +176,17 @@ export default function AnalyticsDashboard() {
     const loadDashboard = async () => {
         try {
             const dashboardData = await analyticsService.getEnhancedDashboard();
-            // ✅ Fix: Use actual StudyGoal properties (name, targetScore, currentScore, status)
+
+            // ✅ Convert to EnhancedStudyGoal (what DashboardDataEnhanced expects)
+            const enhancedGoals: EnhancedStudyGoal[] = (dashboardData.studyGoals || []).map(
+                convertServiceGoalToEnhancedGoal
+            );
+
             const enhancedData: DashboardDataEnhanced = {
                 ...dashboardData,
-                studyGoals: (dashboardData.studyGoals || []).map((goal) => {
-                    // ✅ Handle deadline - convert to Date if needed (can be Date or string)
-                    let deadline: Date;
-                    if (typeof goal.deadline === 'string') {
-                        deadline = new Date(goal.deadline);
-                    } else if (goal.deadline instanceof Date) {
-                        deadline = goal.deadline;
-                    } else {
-                        deadline = new Date(); // Fallback to today
-                    }
-
-                    return {
-                        id: goal.id,
-                        title: goal.name || '', // ✅ Just use 'name'
-                        targetAccuracy: goal.targetScore ?? 0, // ✅ Just use 'targetScore'
-                        currentAccuracy: goal.currentScore ?? 0, // ✅ Just use 'currentScore'
-                        deadline: deadline,
-                        subject: goal.subject || '',
-                        completed: goal.status === 'completed', // ✅ Transform status
-                        priority: (goal.priority as 'high' | 'medium' | 'low') || 'medium',
-                    } as EnhancedStudyGoal;
-                }),
+                studyGoals: enhancedGoals,  // ✅ Now matches EnhancedStudyGoal[]
             };
+
             setData(enhancedData);
         } catch (error) {
             console.error('Failed to load dashboard:', error);
@@ -239,7 +248,7 @@ export default function AnalyticsDashboard() {
     };
 
     // ✅ Convert enhanced study goals to component-compatible format
-    const studyGoalsForComponent: StudyGoal[] = studyGoals.map((goal) => ({
+    const studyGoalsForComponent: UIStudyGoal[] = studyGoals.map((goal) => ({
         id: goal.id,
         name: goal.title,
         targetScore: goal.targetAccuracy,
@@ -270,8 +279,8 @@ export default function AnalyticsDashboard() {
                     <button
                         onClick={() => navigate('/pricing')}
                         className={`px-4 py-2 rounded-lg font-semibold transition-colors ${isPremium
-                                ? 'bg-green-100 text-green-800'
-                                : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                            ? 'bg-green-100 text-green-800'
+                            : 'bg-indigo-600 text-white hover:bg-indigo-700'
                             }`}
                     >
                         {isPremium ? '✓ Premium' : 'Upgrade'}
@@ -293,8 +302,8 @@ export default function AnalyticsDashboard() {
                                 key={tab.id}
                                 onClick={() => setActiveTab(tab.id)}
                                 className={`px-4 py-2 rounded-md font-medium flex items-center gap-2 transition-colors ${activeTab === tab.id
-                                        ? 'bg-indigo-600 text-white'
-                                        : 'text-gray-700 hover:bg-gray-100'
+                                    ? 'bg-indigo-600 text-white'
+                                    : 'text-gray-700 hover:bg-gray-100'
                                     }`}
                             >
                                 <Icon size={18} />
@@ -391,10 +400,10 @@ export default function AnalyticsDashboard() {
                                                 </div>
                                                 <span
                                                     className={`px-2 py-1 rounded text-xs font-semibold ${rec.priority === 'high'
-                                                            ? 'bg-red-200 text-red-800'
-                                                            : rec.priority === 'medium'
-                                                                ? 'bg-yellow-200 text-yellow-800'
-                                                                : 'bg-blue-200 text-blue-800'
+                                                        ? 'bg-red-200 text-red-800'
+                                                        : rec.priority === 'medium'
+                                                            ? 'bg-yellow-200 text-yellow-800'
+                                                            : 'bg-blue-200 text-blue-800'
                                                         }`}
                                                 >
                                                     {rec.priority}
@@ -436,10 +445,10 @@ export default function AnalyticsDashboard() {
                                                 <div className="text-right">
                                                     <p
                                                         className={`text-lg font-bold ${session.score >= 75
-                                                                ? 'text-green-600'
-                                                                : session.score >= 50
-                                                                    ? 'text-yellow-600'
-                                                                    : 'text-red-600'
+                                                            ? 'text-green-600'
+                                                            : session.score >= 50
+                                                                ? 'text-yellow-600'
+                                                                : 'text-red-600'
                                                             }`}
                                                     >
                                                         {session.score.toFixed(0)}%
@@ -471,10 +480,10 @@ export default function AnalyticsDashboard() {
                                                 <div className="w-full bg-gray-200 rounded-full h-2">
                                                     <div
                                                         className={`h-2 rounded-full transition-all ${subject.accuracy >= 75
-                                                                ? 'bg-green-500'
-                                                                : subject.accuracy >= 50
-                                                                    ? 'bg-yellow-500'
-                                                                    : 'bg-red-500'
+                                                            ? 'bg-green-500'
+                                                            : subject.accuracy >= 50
+                                                                ? 'bg-yellow-500'
+                                                                : 'bg-red-500'
                                                             }`}
                                                         style={{ width: `${subject.accuracy}%` }}
                                                     />
