@@ -7,15 +7,14 @@ import {
   X, 
   Ban, 
   UserCheck,
-  Mail,
   Phone,
   Calendar,
   School,
   Eye,
-  Download,
   ShieldCheck,
   Clock,
-  Activity
+  Activity,
+  ChevronDown
 } from 'lucide-react';
 import { adminService } from '../../services/admin.service';
 
@@ -62,6 +61,7 @@ export default function AdminUsers() {
   const [showUserModal, setShowUserModal] = useState(false);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [showFilterMenu, setShowFilterMenu] = useState(false);
 
   const showToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
     const id = Date.now();
@@ -162,6 +162,7 @@ export default function AdminUsers() {
   const viewUserDetails = (user: User) => {
     setSelectedUser(user);
     setShowUserModal(true);
+    setShowFilterMenu(false);
   };
 
   const getStatusBadge = (status: string) => {
@@ -189,9 +190,10 @@ export default function AdminUsers() {
     };
     const { bg, text, icon } = config[status] || config.ACTIVE;
     return (
-      <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium border ${bg} ${text}`}>
+      <span className={`inline-flex items-center gap-1 px-2 xs:px-3 py-1 rounded-full text-xs font-medium border ${bg} ${text}`}>
         {icon}
-        {status}
+        <span className="hidden xs:inline">{status}</span>
+        <span className="xs:hidden">{status.slice(0, 3)}</span>
       </span>
     );
   };
@@ -211,177 +213,256 @@ export default function AdminUsers() {
       TEACHER: { 
         bg: 'bg-indigo-50 border-indigo-200', 
         text: 'text-indigo-700',
-        icon: <Users size={14} />
-      },
-      TUTOR: { 
-        bg: 'bg-pink-50 border-pink-200', 
-        text: 'text-pink-700',
-        icon: <Users size={14} />
+        icon: <Activity size={14} />
       },
       STUDENT: { 
-        bg: 'bg-gray-50 border-gray-200', 
-        text: 'text-gray-700',
+        bg: 'bg-emerald-50 border-emerald-200', 
+        text: 'text-emerald-700',
         icon: <Users size={14} />
       }
     };
     const { bg, text, icon } = config[role] || config.STUDENT;
     return (
-      <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium border ${bg} ${text}`}>
+      <span className={`inline-flex items-center gap-1 px-2 xs:px-3 py-1 rounded-full text-xs font-medium border ${bg} ${text}`}>
         {icon}
-        {role.replace('_', ' ')}
+        <span className="hidden xs:inline">{role.replace('_', ' ')}</span>
+        <span className="xs:hidden">{role.slice(0, 3)}</span>
       </span>
     );
   };
 
-  const LoadingSkeleton = () => (
-    <div className="space-y-4">
-      {[...Array(5)].map((_, i) => (
-        <div key={i} className="bg-white rounded-xl p-6 animate-pulse">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-gray-200 rounded-full"></div>
-            <div className="flex-1 space-y-2">
-              <div className="h-4 bg-gray-200 rounded w-1/4"></div>
-              <div className="h-3 bg-gray-200 rounded w-1/3"></div>
-            </div>
-          </div>
-        </div>
-      ))}
-    </div>
-  );
+  if (loading && users.length === 0) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <div className="animate-spin rounded-full h-10 w-10 xs:h-12 xs:w-12 border-b-2 border-indigo-600"></div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-4 md:p-8">
-      {/* Toast Notifications */}
-      <div className="fixed top-4 right-4 z-50 space-y-2">
+    <div className="min-h-screen bg-gray-50">
+      {/* Toast Notifications - Mobile Responsive */}
+      <div className="fixed top-4 xs:top-6 right-2 xs:right-4 z-50 space-y-2 max-w-xs xs:max-w-sm">
         {toasts.map(toast => (
           <div
             key={toast.id}
-            className={`px-6 py-3 rounded-lg shadow-lg flex items-center gap-3 animate-slide-in ${
-              toast.type === 'success' ? 'bg-green-500 text-white' :
-              toast.type === 'error' ? 'bg-red-500 text-white' :
-              'bg-blue-500 text-white'
+            className={`p-3 xs:p-4 rounded-lg xs:rounded-xl text-sm xs:text-base font-medium text-white shadow-lg ${
+              toast.type === 'success'
+                ? 'bg-green-500'
+                : toast.type === 'error'
+                ? 'bg-red-500'
+                : 'bg-blue-500'
             }`}
           >
-            {toast.type === 'success' && <Check size={20} />}
-            {toast.type === 'error' && <X size={20} />}
-            {toast.type === 'info' && <Activity size={20} />}
-            <span className="font-medium">{toast.message}</span>
+            {toast.message}
           </div>
         ))}
       </div>
 
-      <div className="max-w-7xl mx-auto">
-        {/* Modern Header */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-4xl font-bold text-gray-900 flex items-center gap-3">
-                <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg">
-                  <Users className="text-white" size={28} />
-                </div>
-                User Management
-              </h1>
-              <p className="text-gray-600 mt-2 ml-15">
-                {pagination.total} total users • {users.filter(u => u.accountStatus === 'PENDING').length} pending approval
-              </p>
+      {/* Header Section - Mobile Responsive */}
+      <div className="bg-white shadow-sm border-b border-gray-200">
+        <div className="w-full max-w-7xl mx-auto px-2 xs:px-3 sm:px-4 md:px-6 py-4 xs:py-6">
+          <div className="flex items-center gap-2 xs:gap-3 mb-4 xs:mb-6">
+            <div className="w-8 h-8 xs:w-10 xs:h-10 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center flex-shrink-0">
+              <Users className="text-white" size={18} />
             </div>
-            <button className="px-4 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-all flex items-center gap-2 shadow-md hover:shadow-lg">
-              <Download size={20} />
-              Export
-            </button>
+            <h1 className="text-base xs:text-lg sm:text-xl md:text-2xl font-bold text-gray-900 truncate">
+              Manage Users
+            </h1>
           </div>
-        </div>
 
-        {/* Modern Filters */}
-        <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-sm border border-gray-200 p-6 mb-6">
-          <div className="flex flex-col md:flex-row gap-4">
-            {/* Search */}
-            <div className="flex-1 relative group">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-600 transition-colors" size={20} />
+          {/* Search & Filters - Mobile Responsive */}
+          <div className="flex flex-col xs:flex-row gap-2 xs:gap-3 items-stretch xs:items-center">
+            {/* Search Input */}
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-2.5 xs:top-3 text-gray-400" size={18} />
               <input
                 type="text"
-                placeholder="Search users by name, email, or username..."
+                placeholder="Search by name, email, or phone..."
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-12 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setPagination({ ...pagination, page: 1 });
+                }}
+                className="w-full pl-10 pr-3 xs:pr-4 py-2 xs:py-3 border-2 border-gray-300 rounded-lg xs:rounded-xl focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all outline-none text-sm xs:text-base"
               />
             </div>
 
-            {/* Status Filter Chips */}
-            <div className="flex items-center gap-2 flex-wrap">
-              <Filter className="text-gray-400" size={20} />
-              {(['all', 'ACTIVE', 'PENDING', 'SUSPENDED', 'REJECTED'] as const).map((status) => (
-                <button
-                  key={status}
-                  onClick={() => setStatusFilter(status)}
-                  className={`px-4 py-2 rounded-xl font-medium transition-all ${
-                    statusFilter === status
-                      ? 'bg-indigo-600 text-white shadow-md'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  {status === 'all' ? 'All' : status}
-                </button>
-              ))}
+            {/* Filter Dropdown - Mobile Responsive */}
+            <div className="relative">
+              <button
+                onClick={() => setShowFilterMenu(!showFilterMenu)}
+                className="flex items-center gap-1.5 xs:gap-2 px-3 xs:px-4 py-2 xs:py-3 border-2 border-gray-300 rounded-lg xs:rounded-xl hover:border-gray-400 transition-all bg-white text-sm xs:text-base font-medium text-gray-700"
+              >
+                <Filter size={18} />
+                <span className="hidden xs:inline">Filter</span>
+                <ChevronDown size={16} className={`transition-transform ${showFilterMenu ? 'rotate-180' : ''}`} />
+              </button>
+
+              {showFilterMenu && (
+                <div className="absolute top-full mt-1 xs:mt-2 right-0 z-40 bg-white border-2 border-gray-300 rounded-lg xs:rounded-xl shadow-lg min-w-40 xs:min-w-48">
+                  {(['all', 'ACTIVE', 'PENDING', 'SUSPENDED', 'REJECTED'] as StatusFilter[]).map(status => (
+                    <button
+                      key={status}
+                      onClick={() => {
+                        setStatusFilter(status);
+                        setShowFilterMenu(false);
+                        setPagination({ ...pagination, page: 1 });
+                      }}
+                      className={`w-full text-left px-3 xs:px-4 py-2 xs:py-3 text-sm xs:text-base transition-all ${
+                        statusFilter === status
+                          ? 'bg-indigo-50 text-indigo-700 font-semibold'
+                          : 'text-gray-700 hover:bg-gray-50'
+                      }`}
+                    >
+                      {status === 'all' ? 'All Status' : status}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>
+      </div>
 
-        {/* User List */}
-        {loading ? (
-          <LoadingSkeleton />
-        ) : users.length === 0 ? (
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-16 text-center">
-            <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Users className="text-gray-400" size={40} />
-            </div>
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">No users found</h3>
-            <p className="text-gray-600">Try adjusting your filters or search query</p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {users.map((user, index) => (
+      {/* Main Content - Mobile Responsive */}
+      <div className="w-full max-w-7xl mx-auto px-2 xs:px-3 sm:px-4 md:px-6 py-4 xs:py-6">
+        {/* Users List - Mobile Card View / Desktop Table View */}
+        {users.length > 0 ? (
+          <div className="space-y-2 xs:space-y-3">
+            {users.map(user => (
               <div
                 key={user.id}
-                className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-all animate-fade-in"
-                style={{ animationDelay: `${index * 50}ms` }}
+                className="bg-white rounded-lg xs:rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all p-3 xs:p-4"
               >
-                <div className="flex items-center justify-between gap-4">
-                  {/* User Info */}
-                  <div className="flex items-center gap-4 flex-1 min-w-0">
-                    {/* Avatar */}
-                    <div className="relative flex-shrink-0">
-                      {user.avatar ? (
-                        <img
-                          src={`http://localhost:5000${user.avatar}`}
-                          alt={user.firstName}
-                          className="w-14 h-14 rounded-xl object-cover border-2 border-gray-200"
-                        />
-                      ) : (
-                        <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center border-2 border-white shadow-md">
-                          <span className="text-white font-bold text-lg">
-                            {user.firstName?.[0]}{user.lastName?.[0]}
-                          </span>
-                        </div>
-                      )}
-                      {user.lastLogin && (
-                        <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 rounded-full border-2 border-white"></div>
-                      )}
-                    </div>
-
-                    {/* Details */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <h3 className="font-semibold text-gray-900 text-lg truncate">
-                          {user.firstName} {user.lastName}
-                        </h3>
-                        {getRoleBadge(user.role)}
-                      </div>
-                      <div className="flex items-center gap-4 text-sm text-gray-600 flex-wrap">
-                        <span className="flex items-center gap-1">
-                          <Mail size={14} />
-                          {user.email}
+                {/* Mobile Card Layout */}
+                <div className="md:hidden space-y-2 xs:space-y-3">
+                  {/* User Header */}
+                  <div className="flex items-start gap-2 xs:gap-3 mb-2 xs:mb-3">
+                    {user.avatar ? (
+                      <img
+                        src={`http://localhost:5000${user.avatar}`}
+                        alt={user.firstName}
+                        className="w-10 h-10 xs:w-12 xs:h-12 rounded-lg object-cover border border-gray-200 flex-shrink-0"
+                      />
+                    ) : (
+                      <div className="w-10 h-10 xs:w-12 xs:h-12 rounded-lg bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center flex-shrink-0">
+                        <span className="text-white font-bold text-xs xs:text-sm">
+                          {user.firstName?.[0]}{user.lastName?.[0]}
                         </span>
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-bold text-sm xs:text-base text-gray-900 truncate">
+                        {user.firstName} {user.lastName}
+                      </h3>
+                      <p className="text-xs xs:text-sm text-gray-600 truncate">{user.email}</p>
+                    </div>
+                  </div>
+
+                  {/* Status & Role Badges */}
+                  <div className="flex flex-wrap gap-1.5 xs:gap-2">
+                    {getStatusBadge(user.accountStatus)}
+                    {getRoleBadge(user.role)}
+                  </div>
+
+                  {/* User Info */}
+                  <div className="space-y-1 text-xs xs:text-sm text-gray-600">
+                    {user.phone && (
+                      <div className="flex items-center gap-1.5">
+                        <Phone size={14} className="flex-shrink-0" />
+                        <span className="truncate">{user.phone}</span>
+                      </div>
+                    )}
+                    {user.school && (
+                      <div className="flex items-center gap-1.5">
+                        <School size={14} className="flex-shrink-0" />
+                        <span className="truncate">{user.school.name}</span>
+                      </div>
+                    )}
+                    <div className="flex items-center gap-1.5">
+                      <Calendar size={14} className="flex-shrink-0" />
+                      <span>Joined {new Date(user.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex gap-1 xs:gap-2 pt-2 xs:pt-3 border-t border-gray-200">
+                    {actionLoading === user.id ? (
+                      <div className="w-8 h-8 xs:w-10 xs:h-10 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                    ) : (
+                      <div className="flex gap-1 xs:gap-2 flex-wrap">
+                        {user.accountStatus === 'PENDING' && (
+                          <>
+                            <button
+                              onClick={() => handleApprove(user.id)}
+                              className="flex-1 p-2 xs:p-2.5 text-white bg-green-600 hover:bg-green-700 rounded-lg xs:rounded-lg transition-all text-xs xs:text-sm font-medium"
+                              title="Approve"
+                            >
+                              <Check size={16} className="mx-auto" />
+                            </button>
+                            <button
+                              onClick={() => handleReject(user.id)}
+                              className="flex-1 p-2 xs:p-2.5 text-white bg-red-600 hover:bg-red-700 rounded-lg xs:rounded-lg transition-all text-xs xs:text-sm font-medium"
+                              title="Reject"
+                            >
+                              <X size={16} className="mx-auto" />
+                            </button>
+                          </>
+                        )}
+                        {user.accountStatus === 'ACTIVE' && (
+                          <button
+                            onClick={() => handleSuspend(user.id)}
+                            className="flex-1 p-2 xs:p-2.5 text-white bg-orange-600 hover:bg-orange-700 rounded-lg xs:rounded-lg transition-all text-xs xs:text-sm font-medium"
+                            title="Suspend"
+                          >
+                            <Ban size={16} className="mx-auto" />
+                          </button>
+                        )}
+                        {user.accountStatus === 'SUSPENDED' && (
+                          <button
+                            onClick={() => handleActivate(user.id)}
+                            className="flex-1 p-2 xs:p-2.5 text-white bg-green-600 hover:bg-green-700 rounded-lg xs:rounded-lg transition-all text-xs xs:text-sm font-medium"
+                            title="Activate"
+                          >
+                            <UserCheck size={16} className="mx-auto" />
+                          </button>
+                        )}
+                        <button
+                          onClick={() => viewUserDetails(user)}
+                          className="flex-1 p-2 xs:p-2.5 text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg xs:rounded-lg transition-all text-xs xs:text-sm font-medium"
+                          title="View Details"
+                        >
+                          <Eye size={16} className="mx-auto" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Desktop Table Layout */}
+                <div className="hidden md:flex items-center gap-3 justify-between">
+                  {/* User Info */}
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    {user.avatar ? (
+                      <img
+                        src={`http://localhost:5000${user.avatar}`}
+                        alt={user.firstName}
+                        className="w-12 h-12 rounded-lg object-cover border border-gray-200 flex-shrink-0"
+                      />
+                    ) : (
+                      <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center flex-shrink-0">
+                        <span className="text-white font-bold">
+                          {user.firstName?.[0]}{user.lastName?.[0]}
+                        </span>
+                      </div>
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <h3 className="font-semibold text-gray-900 truncate">
+                        {user.firstName} {user.lastName}
+                      </h3>
+                      <div className="flex items-center gap-2 text-sm text-gray-600 mt-1 flex-wrap">
+                        <span className="truncate">{user.email}</span>
                         {user.phone && (
                           <span className="flex items-center gap-1">
                             <Phone size={14} />
@@ -402,9 +483,12 @@ export default function AdminUsers() {
                     </div>
                   </div>
 
-                  {/* Status & Actions */}
+                  {/* Badges & Actions */}
                   <div className="flex items-center gap-3 flex-shrink-0">
-                    {getStatusBadge(user.accountStatus)}
+                    <div className="flex gap-2">
+                      {getStatusBadge(user.accountStatus)}
+                      {getRoleBadge(user.role)}
+                    </div>
 
                     {/* Action Buttons */}
                     <div className="flex items-center gap-2">
@@ -463,33 +547,38 @@ export default function AdminUsers() {
               </div>
             ))}
           </div>
+        ) : (
+          <div className="text-center py-8 xs:py-12">
+            <Users className="mx-auto mb-3 xs:mb-4 text-gray-400" size={32} />
+            <p className="text-gray-600 text-sm xs:text-base">No users found</p>
+          </div>
         )}
 
-        {/* Modern Pagination */}
+        {/* Pagination - Mobile Responsive */}
         {pagination.pages > 1 && (
-          <div className="mt-6 bg-white rounded-2xl shadow-sm border border-gray-200 p-4">
-            <div className="flex items-center justify-between">
-              <p className="text-sm text-gray-600">
+          <div className="mt-6 xs:mt-8 bg-white rounded-lg xs:rounded-xl shadow-sm border border-gray-200 p-3 xs:p-4">
+            <div className="flex flex-col xs:flex-row items-start xs:items-center justify-between gap-3 xs:gap-4">
+              <p className="text-xs xs:text-sm text-gray-600">
                 Showing <span className="font-semibold">{((pagination.page - 1) * pagination.limit) + 1}</span> to{' '}
                 <span className="font-semibold">{Math.min(pagination.page * pagination.limit, pagination.total)}</span> of{' '}
                 <span className="font-semibold">{pagination.total}</span> users
               </p>
-              <div className="flex gap-2">
+              <div className="flex gap-1 xs:gap-2 flex-wrap">
                 <button
                   onClick={() => setPagination({ ...pagination, page: pagination.page - 1 })}
                   disabled={pagination.page === 1}
-                  className="px-4 py-2 bg-gray-100 text-gray-700 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-200 transition-all"
+                  className="px-2 xs:px-4 py-1 xs:py-2 bg-gray-100 text-gray-700 rounded-lg text-xs xs:text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-200 transition-all"
                 >
-                  Previous
+                  Prev
                 </button>
-                <div className="flex items-center gap-1">
-                  {[...Array(Math.min(5, pagination.pages))].map((_, i) => {
+                <div className="flex items-center gap-0.5 xs:gap-1">
+                  {[...Array(Math.min(3, pagination.pages))].map((_, i) => {
                     const page = i + 1;
                     return (
                       <button
                         key={page}
                         onClick={() => setPagination({ ...pagination, page })}
-                        className={`w-10 h-10 rounded-xl font-medium transition-all ${
+                        className={`w-8 h-8 xs:w-10 xs:h-10 rounded-lg text-xs xs:text-sm font-medium transition-all ${
                           pagination.page === page
                             ? 'bg-indigo-600 text-white shadow-md'
                             : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -503,7 +592,7 @@ export default function AdminUsers() {
                 <button
                   onClick={() => setPagination({ ...pagination, page: pagination.page + 1 })}
                   disabled={pagination.page >= pagination.pages}
-                  className="px-4 py-2 bg-gray-100 text-gray-700 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-200 transition-all"
+                  className="px-2 xs:px-4 py-1 xs:py-2 bg-gray-100 text-gray-700 rounded-lg text-xs xs:text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-200 transition-all"
                 >
                   Next
                 </button>
@@ -513,74 +602,75 @@ export default function AdminUsers() {
         )}
       </div>
 
-      {/* User Detail Modal */}
+      {/* User Detail Modal - Mobile Responsive */}
       {showUserModal && selectedUser && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto animate-slide-up">
-            <div className="p-6 border-b border-gray-200">
-              <div className="flex items-center justify-between">
-                <h2 className="text-2xl font-bold text-gray-900">User Details</h2>
-                <button
-                  onClick={() => setShowUserModal(false)}
-                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                >
-                  <X size={24} />
-                </button>
-              </div>
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-2 xs:p-4">
+          <div className="bg-white rounded-lg xs:rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            {/* Header */}
+            <div className="p-3 xs:p-6 border-b border-gray-200 flex items-center justify-between sticky top-0 bg-white">
+              <h2 className="text-base xs:text-2xl font-bold text-gray-900">User Details</h2>
+              <button
+                onClick={() => setShowUserModal(false)}
+                className="p-1 xs:p-2 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
+              >
+                <X size={20} />
+              </button>
             </div>
-            <div className="p-6 space-y-6">
+
+            {/* Content */}
+            <div className="p-3 xs:p-6 space-y-4 xs:space-y-6">
               {/* Profile Section */}
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-3 xs:gap-4">
                 {selectedUser.avatar ? (
                   <img
                     src={`http://localhost:5000${selectedUser.avatar}`}
                     alt={selectedUser.firstName}
-                    className="w-20 h-20 rounded-2xl object-cover border-2 border-gray-200"
+                    className="w-16 h-16 xs:w-20 xs:h-20 rounded-lg xs:rounded-2xl object-cover border-2 border-gray-200 flex-shrink-0"
                   />
                 ) : (
-                  <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center">
-                    <span className="text-white font-bold text-2xl">
+                  <div className="w-16 h-16 xs:w-20 xs:h-20 rounded-lg xs:rounded-2xl bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center flex-shrink-0">
+                    <span className="text-white font-bold text-xl xs:text-2xl">
                       {selectedUser.firstName?.[0]}{selectedUser.lastName?.[0]}
                     </span>
                   </div>
                 )}
-                <div>
-                  <h3 className="text-xl font-bold text-gray-900">
+                <div className="min-w-0 flex-1">
+                  <h3 className="text-base xs:text-xl font-bold text-gray-900 truncate">
                     {selectedUser.firstName} {selectedUser.lastName}
                   </h3>
-                  <p className="text-gray-600">{selectedUser.email}</p>
+                  <p className="text-xs xs:text-base text-gray-600 truncate">{selectedUser.email}</p>
                 </div>
               </div>
 
-              {/* Details Grid */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="p-4 bg-gray-50 rounded-xl">
-                  <p className="text-sm text-gray-600 mb-1">Role</p>
-                  <p className="font-semibold text-gray-900">{selectedUser.role.replace('_', ' ')}</p>
+              {/* Details Grid - Mobile Responsive */}
+              <div className="grid grid-cols-1 xs:grid-cols-2 gap-2 xs:gap-4">
+                <div className="p-3 xs:p-4 bg-gray-50 rounded-lg xs:rounded-xl">
+                  <p className="text-xs text-gray-600 mb-1">Role</p>
+                  <p className="font-semibold text-sm xs:text-base text-gray-900">{selectedUser.role.replace('_', ' ')}</p>
                 </div>
-                <div className="p-4 bg-gray-50 rounded-xl">
-                  <p className="text-sm text-gray-600 mb-1">Status</p>
-                  <p className="font-semibold text-gray-900">{selectedUser.accountStatus}</p>
+                <div className="p-3 xs:p-4 bg-gray-50 rounded-lg xs:rounded-xl">
+                  <p className="text-xs text-gray-600 mb-1">Status</p>
+                  <p className="font-semibold text-sm xs:text-base text-gray-900">{selectedUser.accountStatus}</p>
                 </div>
                 {selectedUser.phone && (
-                  <div className="p-4 bg-gray-50 rounded-xl">
-                    <p className="text-sm text-gray-600 mb-1">Phone</p>
-                    <p className="font-semibold text-gray-900">{selectedUser.phone}</p>
+                  <div className="p-3 xs:p-4 bg-gray-50 rounded-lg xs:rounded-xl">
+                    <p className="text-xs text-gray-600 mb-1">Phone</p>
+                    <p className="font-semibold text-sm xs:text-base text-gray-900">{selectedUser.phone}</p>
                   </div>
                 )}
                 {selectedUser.school && (
-                  <div className="p-4 bg-gray-50 rounded-xl">
-                    <p className="text-sm text-gray-600 mb-1">School</p>
-                    <p className="font-semibold text-gray-900">{selectedUser.school.name}</p>
+                  <div className="p-3 xs:p-4 bg-gray-50 rounded-lg xs:rounded-xl">
+                    <p className="text-xs text-gray-600 mb-1">School</p>
+                    <p className="font-semibold text-sm xs:text-base text-gray-900">{selectedUser.school.name}</p>
                   </div>
                 )}
-                <div className="p-4 bg-gray-50 rounded-xl">
-                  <p className="text-sm text-gray-600 mb-1">Subscription</p>
-                  <p className="font-semibold text-gray-900">{selectedUser.subscriptionTier}</p>
+                <div className="p-3 xs:p-4 bg-gray-50 rounded-lg xs:rounded-xl">
+                  <p className="text-xs text-gray-600 mb-1">Subscription</p>
+                  <p className="font-semibold text-sm xs:text-base text-gray-900">{selectedUser.subscriptionTier}</p>
                 </div>
-                <div className="p-4 bg-gray-50 rounded-xl">
-                  <p className="text-sm text-gray-600 mb-1">Joined</p>
-                  <p className="font-semibold text-gray-900">
+                <div className="p-3 xs:p-4 bg-gray-50 rounded-lg xs:rounded-xl">
+                  <p className="text-xs text-gray-600 mb-1">Joined</p>
+                  <p className="font-semibold text-sm xs:text-base text-gray-900">
                     {new Date(selectedUser.createdAt).toLocaleDateString()}
                   </p>
                 </div>

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Search, Edit2, Trash2, Eye, Filter, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, Eye, Filter, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface Question {
   id: string;
@@ -78,305 +78,315 @@ export default function QuestionsPage() {
           subject: { name: 'Mathematics', code: 'MATH' },
           topic: { name: 'Number Theory' },
           options: [
-            { label: 'A', content: '15', isCorrect: false },
-            { label: 'B', content: '21', isCorrect: false },
-            { label: 'C', content: '23', isCorrect: true },
-            { label: 'D', content: '27', isCorrect: false },
+            { label: 'A', content: '4', isCorrect: false },
+            { label: 'B', content: '9', isCorrect: false },
+            { label: 'C', content: '17', isCorrect: true },
+            { label: 'D', content: '20', isCorrect: false },
+          ],
+        },
+        {
+          id: '4',
+          content: 'What is the chemical formula for water?',
+          type: 'MULTIPLE_CHOICE',
+          difficulty: 'EASY',
+          year: 2024,
+          subject: { name: 'Physics', code: 'PHY' },
+          topic: { name: 'Basic Chemistry' },
+          options: [
+            { label: 'A', content: 'H2O', isCorrect: true },
+            { label: 'B', content: 'CO2', isCorrect: false },
+            { label: 'C', content: 'O2', isCorrect: false },
+            { label: 'D', content: 'H2O2', isCorrect: false },
           ],
         },
       ]);
       setLoading(false);
-    }, 800);
-  }, [page, search, subjectFilter, difficultyFilter]);
+    }, 1000);
+  }, []);
 
-  const getDifficultyColor = (difficulty: string) => {
-    const colors = {
-      EASY: 'from-green-500 to-emerald-500',
-      MEDIUM: 'from-yellow-500 to-orange-500',
-      HARD: 'from-red-500 to-pink-500',
-    };
-    return colors[difficulty as keyof typeof colors] || 'from-gray-500 to-gray-600';
+  const getDifficultyColor = (difficulty: string): string => {
+    switch (difficulty) {
+      case 'EASY':
+        return 'from-green-500 to-emerald-500';
+      case 'MEDIUM':
+        return 'from-yellow-500 to-orange-500';
+      case 'HARD':
+        return 'from-red-500 to-pink-500';
+      default:
+        return 'from-gray-500 to-slate-500';
+    }
   };
 
-  const getDifficultyBadge = (difficulty: string) => {
-    const colors = {
-      EASY: 'bg-green-50 text-green-700 border-green-200',
-      MEDIUM: 'bg-yellow-50 text-yellow-700 border-yellow-200',
-      HARD: 'bg-red-50 text-red-700 border-red-200',
-    };
-    return colors[difficulty as keyof typeof colors] || 'bg-gray-50 text-gray-700 border-gray-200';
+  const getDifficultyBadgeColor = (difficulty: string): string => {
+    switch (difficulty) {
+      case 'EASY':
+        return 'bg-green-100 text-green-700';
+      case 'MEDIUM':
+        return 'bg-yellow-100 text-yellow-700';
+      case 'HARD':
+        return 'bg-red-100 text-red-700';
+      default:
+        return 'bg-gray-100 text-gray-700';
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.5 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5 }}
+          className="text-center"
+        >
+          <motion.div
+            animate={{ rotate: 360 }}
+            transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+            className="w-12 h-12 xs:w-16 xs:h-16 border-4 border-indigo-600 border-t-transparent rounded-full mx-auto mb-3 xs:mb-4"
+          />
+          <p className="text-sm xs:text-base text-gray-600 font-medium">Loading questions...</p>
+        </motion.div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen p-8 bg-gradient-to-br from-gray-50 to-blue-50">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
+    <div className="min-h-screen p-2 xs:p-3 sm:p-4 md:p-6 lg:p-8 bg-gradient-to-br from-gray-50 via-purple-50 to-blue-50">
+      <div className="w-full max-w-6xl mx-auto">
+        {/* Header - Mobile Responsive */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex items-center justify-between mb-8"
+          className="mb-3 xs:mb-4 sm:mb-6"
         >
-          <div>
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-2">
-              Questions Bank
+          <div className="flex items-center justify-between gap-2 mb-2 xs:mb-3">
+            <h1 className="text-2xl xs:text-3xl sm:text-4xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent truncate">
+              Questions
             </h1>
-            <p className="text-gray-600">Manage and organize your WAEC questions</p>
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="bg-indigo-600 text-white p-2 xs:p-2.5 sm:p-3 rounded-lg xs:rounded-xl hover:bg-indigo-700 transition-colors flex-shrink-0"
+            >
+              <Plus className="w-5 h-5 xs:w-6 xs:h-6" />
+            </motion.button>
           </div>
-          
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            className="flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all"
-          >
-            <Plus size={20} />
-            <span className="font-semibold">Add Question</span>
-          </motion.button>
+          <p className="text-xs xs:text-sm text-gray-600">
+            Manage and organize your question bank
+          </p>
         </motion.div>
 
-        {/* Filters */}
+        {/* Search & Filter Bar - Mobile Responsive */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="bg-white rounded-2xl shadow-xl p-6 mb-6"
+          className="mb-3 xs:mb-4 sm:mb-6"
         >
-          <div className="flex items-center gap-4 mb-4">
+          <div className="flex flex-col xs:flex-row gap-2 xs:gap-3">
+            {/* Search Box */}
             <div className="flex-1 relative">
-              <Search className="absolute left-4 top-3.5 text-gray-400" size={20} />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 xs:w-5 xs:h-5" />
               <input
                 type="text"
                 placeholder="Search questions..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-12 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 transition-all outline-none"
+                className="w-full pl-9 xs:pl-10 pr-3 xs:pr-4 py-2 xs:py-2.5 sm:py-3 rounded-lg xs:rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-xs xs:text-sm"
               />
             </div>
             
+            {/* Filter Button */}
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => setShowFilters(!showFilters)}
-              className={`flex items-center gap-2 px-6 py-3 rounded-xl font-semibold transition-all ${
-                showFilters
-                  ? 'bg-indigo-100 text-indigo-700 border-2 border-indigo-300'
-                  : 'bg-gray-100 text-gray-700 border-2 border-gray-200 hover:border-gray-300'
-              }`}
+              className="relative flex items-center gap-2 px-3 xs:px-4 sm:px-6 py-2 xs:py-2.5 sm:py-3 border-2 border-gray-300 rounded-lg xs:rounded-xl hover:border-indigo-300 hover:bg-indigo-50 transition-all font-semibold text-xs xs:text-sm"
             >
-              <Filter size={20} />
-              Filters
-              {(subjectFilter || difficultyFilter) && (
-                <span className="bg-indigo-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                  {[subjectFilter, difficultyFilter].filter(Boolean).length}
-                </span>
-              )}
+              <Filter className="w-4 h-4 xs:w-5 xs:h-5" />
+              <span className="hidden xs:inline">Filter</span>
             </motion.button>
           </div>
 
+          {/* Filter Panel - Mobile Responsive */}
           <AnimatePresence>
             {showFilters && (
               <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: 'auto', opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                transition={{ duration: 0.3 }}
-                className="overflow-hidden"
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="mt-2 xs:mt-3 sm:mt-4 p-3 xs:p-4 sm:p-6 bg-white rounded-lg xs:rounded-xl shadow-lg border border-gray-200"
               >
-                <div className="pt-4 border-t border-gray-200">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">Subject</label>
-                      <select
-                        value={subjectFilter}
-                        onChange={(e) => setSubjectFilter(e.target.value)}
-                        className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 transition-all outline-none"
-                      >
-                        <option value="">All Subjects</option>
-                        {subjects.map((subject) => (
-                          <option key={subject.id} value={subject.id}>
-                            {subject.name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">Difficulty</label>
-                      <select
-                        value={difficultyFilter}
-                        onChange={(e) => setDifficultyFilter(e.target.value)}
-                        className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 transition-all outline-none"
-                      >
-                        <option value="">All Difficulties</option>
-                        <option value="EASY">Easy</option>
-                        <option value="MEDIUM">Medium</option>
-                        <option value="HARD">Hard</option>
-                      </select>
-                    </div>
-                  </div>
-                  
-                  {(subjectFilter || difficultyFilter) && (
-                    <motion.button
-                      initial={{ opacity: 0, scale: 0.8 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={() => {
-                        setSubjectFilter('');
-                        setDifficultyFilter('');
-                      }}
-                      className="mt-4 text-indigo-600 hover:text-indigo-700 font-semibold text-sm flex items-center gap-1"
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 xs:gap-4">
+                  {/* Subject Filter */}
+                  <div>
+                    <label className="block text-xs xs:text-sm font-semibold text-gray-700 mb-2">Subject</label>
+                    <select
+                      value={subjectFilter}
+                      onChange={(e) => setSubjectFilter(e.target.value)}
+                      className="w-full px-3 py-2 xs:py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-xs xs:text-sm"
                     >
-                      <X size={16} />
-                      Clear all filters
-                    </motion.button>
-                  )}
+                      <option value="">All Subjects</option>
+                      {subjects.map((subject) => (
+                        <option key={subject.id} value={subject.code}>
+                          {subject.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Difficulty Filter */}
+                  <div>
+                    <label className="block text-xs xs:text-sm font-semibold text-gray-700 mb-2">Difficulty</label>
+                    <select
+                      value={difficultyFilter}
+                      onChange={(e) => setDifficultyFilter(e.target.value)}
+                      className="w-full px-3 py-2 xs:py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-xs xs:text-sm"
+                    >
+                      <option value="">All Levels</option>
+                      <option value="EASY">Easy</option>
+                      <option value="MEDIUM">Medium</option>
+                      <option value="HARD">Hard</option>
+                    </select>
+                  </div>
                 </div>
               </motion.div>
             )}
           </AnimatePresence>
         </motion.div>
 
-        {/* Questions List */}
-        {loading ? (
-          <div className="space-y-4">
-            {[1, 2, 3].map((i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.1 }}
-                className="bg-white rounded-2xl p-6 shadow-lg"
-              >
-                <div className="animate-pulse space-y-3">
-                  <div className="h-4 bg-gray-200 rounded w-3/4" />
-                  <div className="h-4 bg-gray-200 rounded w-1/2" />
-                  <div className="h-4 bg-gray-200 rounded w-2/3" />
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        ) : (
-          <div className="space-y-4">
-            <AnimatePresence mode="popLayout">
+        {/* Questions List - Mobile Responsive */}
+        {questions.length > 0 ? (
+          <div className="space-y-2 xs:space-y-3 sm:space-y-4 mb-4 xs:mb-6 sm:mb-8">
+            <AnimatePresence>
               {questions.map((question, index) => (
                 <motion.div
                   key={question.id}
-                  layout
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.9 }}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: index * 0.05 }}
-                  whileHover={{ y: -2 }}
-                  className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all overflow-hidden group"
+                  className="group bg-white rounded-lg xs:rounded-xl md:rounded-2xl shadow-lg hover:shadow-xl transition-shadow overflow-hidden"
                 >
-                  <div className="p-6">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-3">
-                          <span className={`px-3 py-1 text-xs font-bold rounded-full border ${getDifficultyBadge(question.difficulty)}`}>
+                  <div className="p-3 xs:p-4 sm:p-6">
+                    {/* Question Header - Mobile Responsive */}
+                    <div className="flex flex-col xs:flex-row xs:items-start xs:justify-between gap-2 xs:gap-3 mb-2 xs:mb-3 sm:mb-4">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex flex-wrap items-center gap-2 mb-1 xs:mb-2">
+                          <span className={`text-xs xs:text-sm font-bold px-2 xs:px-3 py-1 rounded-full ${getDifficultyBadgeColor(question.difficulty)}`}>
                             {question.difficulty}
                           </span>
-                          <span className="text-sm text-gray-500">
-                            {question.subject.name} • {question.topic.name}
+                          <span className="text-xs xs:text-sm text-gray-600 bg-gray-100 px-2 xs:px-3 py-1 rounded-full">
+                            {question.year}
                           </span>
-                          {question.year && (
-                            <span className="text-sm text-gray-400">
-                              {question.year}
-                            </span>
-                          )}
                         </div>
-                        
-                        <p className="text-gray-900 text-lg leading-relaxed mb-4">
-                          {question.content}
-                        </p>
-                        
-                        <div className="grid grid-cols-2 gap-2">
-                          {question.options.map((option) => (
-                            <div
-                              key={option.label}
-                              className={`px-3 py-2 rounded-lg text-sm transition-all ${
-                                option.isCorrect
-                                  ? 'bg-green-50 border-2 border-green-200 text-green-700 font-semibold'
-                                  : 'bg-gray-50 border border-gray-200 text-gray-700'
-                              }`}
-                            >
-                              <span className="font-bold mr-2">{option.label}.</span>
-                              {option.content}
-                            </div>
-                          ))}
+                        <div className="flex flex-wrap items-center gap-1 xs:gap-2 text-xs xs:text-sm text-gray-600">
+                          <span className="font-semibold">{question.subject.name}</span>
+                          <span>•</span>
+                          <span>{question.topic.name}</span>
                         </div>
                       </div>
-                      
-                      <div className="flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+
+                      {/* Action Buttons - Always Visible on Mobile */}
+                      <div className="flex gap-1 xs:gap-2 flex-shrink-0 xs:opacity-0 xs:group-hover:opacity-100 xs:transition-opacity">
                         <motion.button
                           whileHover={{ scale: 1.1 }}
                           whileTap={{ scale: 0.9 }}
-                          className="p-2 bg-indigo-100 text-indigo-600 rounded-lg hover:bg-indigo-200 transition-colors"
+                          className="p-1.5 xs:p-2 bg-indigo-100 text-indigo-600 rounded-lg hover:bg-indigo-200 transition-colors"
                           title="View Details"
                         >
-                          <Eye size={18} />
+                          <Eye className="w-4 h-4 xs:w-4.5 xs:h-4.5" />
                         </motion.button>
                         <motion.button
                           whileHover={{ scale: 1.1 }}
                           whileTap={{ scale: 0.9 }}
-                          className="p-2 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 transition-colors"
+                          className="p-1.5 xs:p-2 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 transition-colors"
                           title="Edit"
                         >
-                          <Edit2 size={18} />
+                          <Edit2 className="w-4 h-4 xs:w-4.5 xs:h-4.5" />
                         </motion.button>
                         <motion.button
                           whileHover={{ scale: 1.1 }}
                           whileTap={{ scale: 0.9 }}
-                          className="p-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors"
+                          className="p-1.5 xs:p-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors"
                           title="Delete"
                         >
-                          <Trash2 size={18} />
+                          <Trash2 className="w-4 h-4 xs:w-4.5 xs:h-4.5" />
                         </motion.button>
                       </div>
                     </div>
+
+                    {/* Question Content - Mobile Responsive */}
+                    <p className="text-gray-900 text-sm xs:text-base leading-relaxed mb-2 xs:mb-3 sm:mb-4">
+                      {question.content}
+                    </p>
+
+                    {/* Options Grid - Mobile Responsive */}
+                    <div className="grid grid-cols-1 xs:grid-cols-2 gap-1.5 xs:gap-2">
+                      {question.options.map((option) => (
+                        <div
+                          key={option.label}
+                          className={`px-2 xs:px-3 py-1.5 xs:py-2 rounded-lg text-xs xs:text-sm transition-all ${
+                            option.isCorrect
+                              ? 'bg-green-50 border-2 border-green-200 text-green-700 font-semibold'
+                              : 'bg-gray-50 border border-gray-200 text-gray-700'
+                          }`}
+                        >
+                          <span className="font-bold mr-1 xs:mr-2">{option.label}.</span>
+                          {option.content}
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                  
+
                   {/* Decorative gradient bar */}
                   <div className={`h-1 bg-gradient-to-r ${getDifficultyColor(question.difficulty)}`} />
                 </motion.div>
               ))}
             </AnimatePresence>
           </div>
+        ) : (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="text-center py-8 xs:py-12 sm:py-16 bg-white rounded-lg xs:rounded-xl md:rounded-2xl shadow-lg"
+          >
+            <p className="text-gray-600 text-sm xs:text-base">No questions found</p>
+          </motion.div>
         )}
 
-        {/* Pagination */}
+        {/* Pagination - Mobile Responsive */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.5 }}
-          className="flex items-center justify-between mt-8 bg-white rounded-2xl shadow-lg p-6"
+          className="flex flex-col xs:flex-row xs:items-center xs:justify-between gap-3 xs:gap-4 bg-white rounded-lg xs:rounded-xl md:rounded-2xl shadow-lg p-3 xs:p-4 sm:p-6"
         >
-          <div className="text-gray-700 font-medium">
+          <div className="text-xs xs:text-sm text-gray-700 font-medium text-center xs:text-left">
             Page <span className="text-indigo-600 font-bold">{page}</span> of{' '}
             <span className="text-indigo-600 font-bold">{totalPages}</span>
           </div>
-          
-          <div className="flex gap-2">
+
+          <div className="flex gap-2 justify-center xs:justify-end">
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => setPage(p => Math.max(1, p - 1))}
               disabled={page === 1}
-              className="flex items-center gap-2 px-4 py-2 border-2 border-gray-200 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed hover:border-indigo-300 hover:bg-indigo-50 transition-all font-semibold"
+              className="flex items-center gap-1 xs:gap-2 px-2 xs:px-4 py-1.5 xs:py-2 border-2 border-gray-200 rounded-lg xs:rounded-xl disabled:opacity-50 disabled:cursor-not-allowed hover:border-indigo-300 hover:bg-indigo-50 transition-all font-semibold text-xs xs:text-sm"
             >
-              <ChevronLeft size={18} />
-              Previous
+              <ChevronLeft className="w-4 h-4 xs:w-5 xs:h-5" />
+              <span className="hidden xs:inline">Previous</span>
             </motion.button>
-            
+
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => setPage(p => Math.min(totalPages, p + 1))}
               disabled={page === totalPages}
-              className="flex items-center gap-2 px-4 py-2 border-2 border-gray-200 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed hover:border-indigo-300 hover:bg-indigo-50 transition-all font-semibold"
+              className="flex items-center gap-1 xs:gap-2 px-2 xs:px-4 py-1.5 xs:py-2 border-2 border-gray-200 rounded-lg xs:rounded-xl disabled:opacity-50 disabled:cursor-not-allowed hover:border-indigo-300 hover:bg-indigo-50 transition-all font-semibold text-xs xs:text-sm"
             >
-              Next
-              <ChevronRight size={18} />
+              <span className="hidden xs:inline">Next</span>
+              <ChevronRight className="w-4 h-4 xs:w-5 xs:h-5" />
             </motion.button>
           </div>
         </motion.div>
