@@ -14,7 +14,7 @@ export const calculateStreak = (sessions: Array<{ date: Date | string }>): numbe
     .sort((a, b) => b.date.getTime() - a.date.getTime());
 
   let streak = 0;
-  let currentDate = new Date();
+  const currentDate = new Date();
   currentDate.setHours(0, 0, 0, 0);
 
   for (const session of sortedSessions) {
@@ -117,7 +117,7 @@ export const formatStudyTime = (minutes: number): string => {
  */
 export const getNextReminderTime = (): string => {
   const now = new Date();
-  let nextReminder = new Date();
+  const nextReminder = new Date();
 
   // Set reminder for tomorrow at 8 AM if past 8 PM today
   if (now.getHours() >= 20) {

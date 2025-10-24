@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Clock, AlertCircle, Loader2, Flag, Home, ChevronLeft, ChevronRight, Pause, Play, CheckCircle, Menu, X } from 'lucide-react';
 import { practiceService } from '../../services/practice.service';
 import apiClient from '../../services/api';
@@ -25,7 +25,6 @@ interface Session {
 }
 
 export default function PracticeInterface() {
-  const { sessionId } = useParams();
   const navigate = useNavigate();
   const [session, setSession] = useState<Session | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -110,7 +109,23 @@ export default function PracticeInterface() {
     } else {
       navigate('/practice/setup');
     }
-  }, [sessionId, navigate]);
+  }, [navigate]);
+
+  useEffect(() => {
+    if (isPaused || timeLeft <= 0) return;
+
+    const timer = setInterval(() => {
+      setTimeLeft(prev => {
+        if (prev <= 1 && !hasAutoSubmitted.current) {
+          handleSubmit(true);
+          return 0;
+        }
+        return prev > 0 ? prev - 1 : 0;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [timeLeft, handleSubmit, isPaused]);
 
   useEffect(() => {
     if (isPaused || timeLeft <= 0) return;
@@ -220,9 +235,8 @@ export default function PracticeInterface() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4">
           <div className="flex items-center justify-between gap-4">
             {/* Timer */}
-            <div className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg font-semibold text-sm sm:text-base whitespace-nowrap ${
-              isTimeCritical ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'
-            }`}>
+            <div className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg font-semibold text-sm sm:text-base whitespace-nowrap ${isTimeCritical ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'
+              }`}>
               <Clock size={18} />
               <span>{formatTime(timeLeft)}</span>
             </div>
@@ -285,11 +299,10 @@ export default function PracticeInterface() {
                   <span className="text-xs sm:text-sm font-semibold text-gray-600">
                     Q{currentIndex + 1}/{questions.length}
                   </span>
-                  <span className={`text-xs px-2 sm:px-3 py-1 rounded-full font-medium ${
-                    currentQuestion.difficulty === 'EASY' ? 'bg-green-100 text-green-700' :
+                  <span className={`text-xs px-2 sm:px-3 py-1 rounded-full font-medium ${currentQuestion.difficulty === 'EASY' ? 'bg-green-100 text-green-700' :
                     currentQuestion.difficulty === 'MEDIUM' ? 'bg-yellow-100 text-yellow-700' :
-                    'bg-red-100 text-red-700'
-                  }`}>
+                      'bg-red-100 text-red-700'
+                    }`}>
                     {currentQuestion.difficulty}
                   </span>
                   <span className="text-xs px-2 sm:px-3 py-1 rounded-full bg-blue-100 text-blue-700 font-medium">
@@ -298,11 +311,10 @@ export default function PracticeInterface() {
                 </div>
                 <button
                   onClick={() => toggleFlag(currentQuestion.id)}
-                  className={`p-2 rounded-lg transition-colors flex-shrink-0 ${
-                    flaggedQuestions.has(currentQuestion.id)
-                      ? 'bg-yellow-100 text-yellow-600'
-                      : 'bg-gray-100 text-gray-400 hover:text-gray-600'
-                  }`}
+                  className={`p-2 rounded-lg transition-colors flex-shrink-0 ${flaggedQuestions.has(currentQuestion.id)
+                    ? 'bg-yellow-100 text-yellow-600'
+                    : 'bg-gray-100 text-gray-400 hover:text-gray-600'
+                    }`}
                 >
                   <Flag size={18} fill={flaggedQuestions.has(currentQuestion.id) ? 'currentColor' : 'none'} />
                 </button>
@@ -324,18 +336,16 @@ export default function PracticeInterface() {
                     key={option.id}
                     onClick={() => handleAnswer(option.label)}
                     disabled={isPaused}
-                    className={`w-full text-left p-3 sm:p-4 rounded-xl border-2 transition-all ${
-                      answers[currentQuestion.id] === option.label
-                        ? 'border-indigo-600 bg-indigo-50 ring-2 ring-indigo-200'
-                        : 'border-gray-200 hover:border-indigo-300 hover:bg-gray-50'
-                    }`}
+                    className={`w-full text-left p-3 sm:p-4 rounded-xl border-2 transition-all ${answers[currentQuestion.id] === option.label
+                      ? 'border-indigo-600 bg-indigo-50 ring-2 ring-indigo-200'
+                      : 'border-gray-200 hover:border-indigo-300 hover:bg-gray-50'
+                      }`}
                   >
                     <div className="flex items-center gap-3 sm:gap-4">
-                      <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0 ${
-                        answers[currentQuestion.id] === option.label
-                          ? 'bg-indigo-600 text-white'
-                          : 'bg-gray-100 text-gray-700'
-                      }`}>
+                      <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0 ${answers[currentQuestion.id] === option.label
+                        ? 'bg-indigo-600 text-white'
+                        : 'bg-gray-100 text-gray-700'
+                        }`}>
                         {option.label}
                       </div>
                       <span className="flex-1 text-sm sm:text-base">{option.content}</span>
@@ -407,13 +417,11 @@ export default function PracticeInterface() {
                       setCurrentIndex(idx);
                       setShowNavigator(false);
                     }}
-                    className={`aspect-square rounded-lg font-bold text-xs transition-all ${
-                      idx === currentIndex ? 'ring-2 ring-indigo-600 scale-110' : ''
-                    } ${
-                      answers[q.id] ? 'bg-green-100 text-green-700' :
-                      flaggedQuestions.has(q.id) ? 'bg-yellow-100 text-yellow-700' :
-                      'bg-gray-100 text-gray-600'
-                    }`}
+                    className={`aspect-square rounded-lg font-bold text-xs transition-all ${idx === currentIndex ? 'ring-2 ring-indigo-600 scale-110' : ''
+                      } ${answers[q.id] ? 'bg-green-100 text-green-700' :
+                        flaggedQuestions.has(q.id) ? 'bg-yellow-100 text-yellow-700' :
+                          'bg-gray-100 text-gray-600'
+                      }`}
                   >
                     {idx + 1}
                   </button>

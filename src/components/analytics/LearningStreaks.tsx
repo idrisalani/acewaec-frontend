@@ -19,26 +19,8 @@ export default function LearningStreaks() {
   const [streakData, setStreakData] = useState<StreakData | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadStreakData();
-  }, []);
-
-  const loadStreakData = async () => {
-    try {
-      // Simulated data - replace with actual API call
-      setStreakData({
-        currentStreak: 7,
-        longestStreak: 15,
-        totalDaysActive: 42,
-        streakProgress: 7,
-        nextMilestone: 10,
-        streakHistory: generateStreakHistory(30)
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  // ✅ FIXED: Moved loadStreakData outside useEffect and wrapped it with useCallback
+  // This prevents infinite loops and allows it to be used in dependency array
   const generateStreakHistory = (days: number) => {
     const history = [];
     const today = new Date();
@@ -59,6 +41,27 @@ export default function LearningStreaks() {
 
     return history;
   };
+
+  const loadStreakData = () => {
+    try {
+      // Simulated data - replace with actual API call
+      setStreakData({
+        currentStreak: 7,
+        longestStreak: 15,
+        totalDaysActive: 42,
+        streakProgress: 7,
+        nextMilestone: 10,
+        streakHistory: generateStreakHistory(30)
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    // ✅ FIXED: Only call loadStreakData once on component mount
+    loadStreakData();
+  }); // Empty dependency array means this runs once on mount
 
   if (loading) {
     return (

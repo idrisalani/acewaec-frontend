@@ -12,6 +12,7 @@ import {
   ArrowRight
 } from 'lucide-react';
 import { practiceService } from '../../services/practice.service';
+import { setSessionData } from '../../utils/sessionStorage';
 
 interface Subject {
   id: string;
@@ -47,7 +48,7 @@ export default function PracticeSetup() {
   const [totalAvailableQuestions, setTotalAvailableQuestions] = useState(0);
   const [userCategory, setUserCategory] = useState<string>(''); // ✅ NEW
   const [isLoadingUserData, setIsLoadingUserData] = useState(true); // ✅ NEW
-  
+
   const [config, setConfig] = useState<PracticeConfig>({
     subjectIds: [],
     topicIds: [],
@@ -89,13 +90,13 @@ export default function PracticeSetup() {
         if (userStr) {
           const user = JSON.parse(userStr);
           console.log('✅ User loaded from storage:', user);
-          
+
           if (user?.studentCategory) {
             setUserCategory(user.studentCategory);
             // Auto-set to user's category
-            setConfig(prev => ({ 
-              ...prev, 
-              category: user.studentCategory 
+            setConfig(prev => ({
+              ...prev,
+              category: user.studentCategory
             }));
             console.log('✅ User category auto-set to:', user.studentCategory);
           }
@@ -223,11 +224,26 @@ export default function PracticeSetup() {
         category: config.category,
       });
 
-      localStorage.setItem('currentPracticeSession', JSON.stringify(response));
-      navigate(`/practice/interface/${response.session.id}`);
+      // Handle wrapped responses
+      const sessionData = response?.data ? response.data : response;
+
+      // Validate structure
+      if (!sessionData?.session?.id || !Array.isArray(sessionData?.questions)) {
+        throw new Error('Invalid server response structure');
+      }
+
+      // ✅ Use utility function for storage
+      setSessionData('currentSession', {
+        session: sessionData.session,
+        questions: sessionData.questions,
+      });
+
+      // Only navigate after successful storage
+      navigate(`/practice/interface/${sessionData.session.id}`);
+
     } catch (error) {
       console.error('Failed to start practice session:', error);
-      alert('Failed to start practice session. Please try again.');
+      alert(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
       setLoading(false);
     }
   };
@@ -388,11 +404,10 @@ export default function PracticeSetup() {
                           <button
                             key={subject.id}
                             type="button"
-                            className={`p-4 border-2 rounded-xl transition-all text-left ${
-                              config.subjectIds.includes(subject.id)
-                                ? 'border-indigo-600 bg-indigo-50 ring-2 ring-indigo-200 transform scale-105'
-                                : 'border-gray-200 hover:border-indigo-300 hover:bg-gray-50'
-                            }`}
+                            className={`p-4 border-2 rounded-xl transition-all text-left ${config.subjectIds.includes(subject.id)
+                              ? 'border-indigo-600 bg-indigo-50 ring-2 ring-indigo-200 transform scale-105'
+                              : 'border-gray-200 hover:border-indigo-300 hover:bg-gray-50'
+                              }`}
                             onClick={() => toggleSubject(subject.id)}
                           >
                             <div className="flex items-start justify-between mb-2">
@@ -426,11 +441,10 @@ export default function PracticeSetup() {
                             <button
                               key={topic.id}
                               type="button"
-                              className={`p-3 border-2 rounded-xl transition-all text-left ${
-                                config.topicIds.includes(topic.id)
-                                  ? 'border-indigo-600 bg-indigo-50'
-                                  : 'border-gray-200 hover:border-indigo-300'
-                              }`}
+                              className={`p-3 border-2 rounded-xl transition-all text-left ${config.topicIds.includes(topic.id)
+                                ? 'border-indigo-600 bg-indigo-50'
+                                : 'border-gray-200 hover:border-indigo-300'
+                                }`}
                               onClick={() => toggleTopic(topic.id)}
                             >
                               <div className="flex items-center justify-between mb-1">
@@ -510,11 +524,10 @@ export default function PracticeSetup() {
                           <button
                             key={category}
                             type="button"
-                            className={`p-4 border-2 rounded-xl transition-all text-center font-semibold ${
-                              config.category === category
-                                ? 'border-indigo-600 bg-indigo-50 ring-2 ring-indigo-200'
-                                : 'border-gray-200 hover:border-indigo-300 hover:bg-gray-50'
-                            }`}
+                            className={`p-4 border-2 rounded-xl transition-all text-center font-semibold ${config.category === category
+                              ? 'border-indigo-600 bg-indigo-50 ring-2 ring-indigo-200'
+                              : 'border-gray-200 hover:border-indigo-300 hover:bg-gray-50'
+                              }`}
                             onClick={() => setConfig(prev => ({ ...prev, category }))}
                           >
                             {category}
