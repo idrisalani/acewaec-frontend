@@ -15,7 +15,7 @@ import {
   X
 } from 'lucide-react';
 import { analyticsService } from '../services/analytics.service';
-import { getImageUrl } from '../config/apiConfig';
+import { getSafeImageUrl } from '../config/apiConfig';
 
 interface DashboardStats {
   overview?: {
@@ -153,7 +153,7 @@ export default function Dashboard() {
 
               {user?.avatar ? (
                 <img
-                  src={getImageUrl(user.avatar)}
+                  src={getSafeImageUrl(user.avatar, user.id, user.firstName)}
                   alt="Profile"
                   className="w-8 h-8 sm:w-10 sm:h-10 rounded-full object-cover border-2 border-indigo-200"
                 />

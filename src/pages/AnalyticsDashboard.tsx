@@ -20,17 +20,17 @@ import {
     Flag,
 } from 'lucide-react';
 import Navigation from '../components/layout/Navigation';
-import { analyticsService } from '../services/analytics.service';
 
 import {
     StudyGoalsCard,
     StreakStats,
     AccuracyComparison,
-    type StudyGoal as UIStudyGoal,  // Rename for UI
+    type StudyGoal as UIStudyGoal, 
 } from '../components/analytics/AnalyticsComponents';
 
 import {
-    type StudyGoal as ServiceStudyGoal,  // Rename for service
+    type StudyGoal as ServiceStudyGoal,  // ✅ Use this in converter
+    analyticsService
 } from '../services/analytics.service';
 
 interface Recommendation {
