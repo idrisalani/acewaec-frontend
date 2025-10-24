@@ -168,13 +168,14 @@ export class PDFService {
         });
 
         // Footer
-        interface DocWithAutoTable extends jsPDF {
+        // ✅ Fix: Use type augmentation instead of interface extends for optional property
+        type DocWithAutoTable = jsPDF & {
             lastAutoTable?: {
                 finalY: number;
             };
-        }
+        };
 
-        const finalY: number = (doc as DocWithAutoTable).lastAutoTable?.finalY || yPosition + 80;
+        const finalY: number = (doc as DocWithAutoTable).lastAutoTable?.finalY ?? (yPosition + 80);
         const footerY = pageHeight - 30;
 
         if (finalY < footerY - 20) {

@@ -16,8 +16,10 @@ export interface StudyGoal {
   name: string;
   targetScore: number;
   currentScore: number;
-  deadline: Date;
+  deadline: Date | string;  // ✅ Allow both Date and string for flexibility
   status: 'active' | 'completed' | 'failed';
+  subject?: string;  // ✅ Add optional subject property
+  priority?: 'high' | 'medium' | 'low';  // ✅ Add optional priority property
 }
 
 export interface StreakData {
