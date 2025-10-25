@@ -21,9 +21,9 @@ export const practiceService = {
 
     const response = await apiClient.get(url);
 
-    console.log('✅ Raw response:', response.data); // DEBUG
-
-    return response.data.data; // Return the data array
+    console.log('🔍 API Response:', response.data);
+    if (response.data.data) { return response.data.data; }
+    else if (response.data.session) { return response.data; }
   },
 
   async getTopics(subjectId: string) {

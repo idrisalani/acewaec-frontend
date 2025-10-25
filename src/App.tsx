@@ -109,7 +109,7 @@ function AppRoutes() {
         } 
       />
       <Route 
-        path="/practice/:sessionId" 
+        path="/practice/interface/:sessionId" 
         element={
           <ProtectedRoute allowedRoles={['STUDENT']}>
             <PracticeSession />

@@ -12,7 +12,7 @@ import {
   ArrowRight
 } from 'lucide-react';
 import { practiceService } from '../../services/practice.service';
-import { setSessionData } from '../../utils/sessionStorage';
+import { setSessionData, SESSION_STORAGE_KEYS } from '../../utils/sessionStorage';
 
 interface Subject {
   id: string;
@@ -250,7 +250,7 @@ export default function PracticeSetup() {
       }
 
       // ✅ Use utility function for storage
-      setSessionData('currentSession', {
+      setSessionData(SESSION_STORAGE_KEYS.CURRENT_PRACTICE_SESSION, {
         session: sessionData.session,
         questions: sessionData.questions,
       });

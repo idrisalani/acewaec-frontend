@@ -157,7 +157,7 @@ export interface SessionData {
  * Session storage keys enum (optional, for type safety)
  */
 export const SESSION_STORAGE_KEYS = {
-  CURRENT_PRACTICE_SESSION: 'currentPracticeSession',
+  CURRENT_PRACTICE_SESSION: 'currentSession',
   USER_PREFERENCES: 'userPreferences',
   TEMP_FORM_DATA: 'tempFormData',
   AUTH_TOKEN: 'authToken',
