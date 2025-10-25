@@ -1,6 +1,3 @@
-// backend/src/components/practice/PracticeSetup.tsx
-// ✅ FIXED VERSION - Resolves "Start Practice Session redirects to dashboard" issue
-
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -49,8 +46,8 @@ export default function PracticeSetup() {
   const [topics, setTopics] = useState<Topic[]>([]);
   const [loading, setLoading] = useState(false);
   const [totalAvailableQuestions, setTotalAvailableQuestions] = useState(0);
-  const [userCategory, setUserCategory] = useState<string>('');
-  const [isLoadingUserData, setIsLoadingUserData] = useState(true);
+  const [userCategory, setUserCategory] = useState<string>(''); // ✅ NEW
+  const [isLoadingUserData, setIsLoadingUserData] = useState(true); // ✅ NEW
 
   const [config, setConfig] = useState<PracticeConfig>({
     subjectIds: [],
@@ -85,7 +82,7 @@ export default function PracticeSetup() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [config.subjectIds, config.topicIds, subjects, topics]);
 
-  // Load user's registered category on component mount
+  // ✅ NEW: Load user's registered category on component mount
   useEffect(() => {
     const loadUserProfile = async () => {
       try {
@@ -118,7 +115,7 @@ export default function PracticeSetup() {
     loadSubjects();
   }, []);
 
-  // Only fetch subjects for the user's category
+  // ✅ MODIFIED: Only fetch subjects for the user's category
   useEffect(() => {
     if (config.category) {
       const fetchCategorySubjects = async () => {
@@ -176,9 +173,26 @@ export default function PracticeSetup() {
 
   const loadTopics = async (subjectId: string) => {
     try {
-      const data = await practiceService.getTopics(subjectId);
-      setTopics(data);
-    } catch (error) {
+      // ✅ Step 1: Type the data variable
+      const data: Topic[] = await practiceService.getTopics(subjectId);
+
+      // ✅ Remove duplicate topics by ID
+      const seenIds = new Set<string>();
+      // ✅ Step 2: Type the callback parameter
+      const uniqueTopics = data.filter((topic: Topic) => {
+        if (seenIds.has(topic.id)) {
+          return false;
+        }
+        seenIds.add(topic.id);
+        return true;
+      });
+
+      if (data.length !== uniqueTopics.length) {
+        console.warn(`⚠️ Removed ${data.length - uniqueTopics.length} duplicate topics`);
+      }
+
+      setTopics(uniqueTopics);
+    } catch (error: unknown) {
       console.error('Failed to load topics:', error);
     }
   };
@@ -202,7 +216,6 @@ export default function PracticeSetup() {
     }));
   };
 
-  // ✅ CRITICAL FIX: Correct handleSubmit implementation
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -219,8 +232,6 @@ export default function PracticeSetup() {
     setLoading(true);
 
     try {
-      console.log('📡 Starting session with config:', config);
-
       const response = await practiceService.startSession({
         subjectIds: config.subjectIds,
         topicIds: config.topicIds.length > 0 ? config.topicIds : undefined,
@@ -230,45 +241,31 @@ export default function PracticeSetup() {
         category: config.category,
       });
 
-      console.log('📡 Response received:', response);
-
       // Handle wrapped responses
       const sessionData = response?.data ? response.data : response;
 
       // Validate structure
       if (!sessionData?.session?.id || !Array.isArray(sessionData?.questions)) {
-        console.error('❌ Invalid response structure:', sessionData);
         throw new Error('Invalid server response structure');
       }
 
-      console.log('✅ Valid session data received');
-      console.log('📦 Session ID:', sessionData.session.id);
-      console.log('📦 Questions count:', sessionData.questions.length);
-
-      // ✅ FIXED: Correct setSessionData call with key parameter
-      console.log('💾 Storing session data...');
+      // ✅ Use utility function for storage
       setSessionData('currentSession', {
         session: sessionData.session,
         questions: sessionData.questions,
       });
 
-      console.log('✅ Session data stored successfully');
-
-      // ✅ Navigate after successful storage
-      const navigationPath = `/practice/interface/${sessionData.session.id}`;
-      console.log('🚀 Navigating to:', navigationPath);
-      navigate(navigationPath);
+      // Only navigate after successful storage
+      navigate(`/practice/interface/${sessionData.session.id}`);
 
     } catch (error) {
-      console.error('❌ Failed to start practice session:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      console.error('❌ Error details:', errorMessage);
-      alert(`Error: ${errorMessage}`);
+      console.error('Failed to start practice session:', error);
+      alert(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
       setLoading(false);
     }
   };
 
-  // Helper to get selected subject name for summary
+  // ✅ NEW: Helper to get selected subject name for summary
   const selectedSubject = subjects.find(s => config.subjectIds.includes(s.id));
 
   // Show loading while fetching user data
@@ -307,7 +304,9 @@ export default function PracticeSetup() {
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-8">
+                {/* ✅ MODIFIED: Show category section based on user data */}
                 {userCategory ? (
+                  // ✅ NEW: User's category is already selected and shown as read-only
                   <>
                     {/* Read-only user category display */}
                     <div>
@@ -334,14 +333,14 @@ export default function PracticeSetup() {
                       </div>
                     </div>
 
-                    {/* STEP 2: Questions */}
+                    {/* STEP 2: Select Number of Questions */}
                     <div>
                       <div className="flex items-center gap-2 sm:gap-3 mb-4">
                         <div className="w-8 h-8 bg-indigo-600 text-white rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0">
                           2
                         </div>
                         <label className="flex items-center gap-2 text-base sm:text-lg font-semibold text-gray-900">
-                          <BookOpen className="text-indigo-600" size={20} />
+                          <Target className="text-indigo-600" size={20} />
                           Number of Questions
                         </label>
                       </div>
@@ -349,24 +348,22 @@ export default function PracticeSetup() {
                         <input
                           type="range"
                           min="1"
-                          max={Math.min(getAvailableQuestions(), 100)}
+                          max="50"
                           value={config.questionCount}
                           onChange={(e) => setConfig(prev => ({ ...prev, questionCount: parseInt(e.target.value) }))}
-                          className="w-full"
+                          className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
                         />
-                        <div className="text-center">
-                          <span className="text-3xl sm:text-4xl font-bold text-indigo-600">{config.questionCount}</span>
-                          <p className="text-xs sm:text-sm text-gray-500 mt-1">
-                            Max available: {getAvailableQuestions()}
-                          </p>
+                        <div className="flex justify-between items-center bg-indigo-50 p-3 sm:p-4 rounded-lg">
+                          <span className="text-sm sm:text-base text-gray-600">Questions:</span>
+                          <span className="text-lg sm:text-2xl font-bold text-indigo-600">{config.questionCount}</span>
                         </div>
                       </div>
                     </div>
 
-                    {/* STEP 3: Duration */}
+                    {/* STEP 3: Duration Settings */}
                     <div>
                       <div className="flex items-center gap-2 sm:gap-3 mb-4">
-                        <div className="w-8 h-8 bg-gray-400 text-white rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0">
+                        <div className="w-8 h-8 bg-indigo-600 text-white rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0">
                           3
                         </div>
                         <label className="flex items-center gap-2 text-base sm:text-lg font-semibold text-gray-900">
@@ -375,15 +372,16 @@ export default function PracticeSetup() {
                         </label>
                       </div>
                       <div className="space-y-3">
-                        <label className="flex items-center gap-3 cursor-pointer">
+                        <label className="flex items-center gap-3 p-3 sm:p-4 bg-gray-50 rounded-lg border-2 border-gray-200 hover:border-indigo-300 transition-colors cursor-pointer">
                           <input
                             type="checkbox"
                             checked={config.hasDuration}
                             onChange={(e) => setConfig(prev => ({ ...prev, hasDuration: e.target.checked }))}
-                            className="w-5 h-5 accent-indigo-600"
+                            className="w-5 h-5 text-indigo-600 rounded"
                           />
-                          <span className="text-sm sm:text-base">Set time limit</span>
+                          <span className="text-sm sm:text-base text-gray-700 font-medium">Set time limit</span>
                         </label>
+
                         {config.hasDuration && (
                           <div className="space-y-2">
                             <input
@@ -393,26 +391,29 @@ export default function PracticeSetup() {
                               step="5"
                               value={config.duration}
                               onChange={(e) => setConfig(prev => ({ ...prev, duration: parseInt(e.target.value) }))}
-                              className="w-full"
+                              className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
                             />
-                            <div className="text-center">
-                              <span className="text-3xl sm:text-4xl font-bold text-indigo-600">{config.duration}</span>
-                              <p className="text-xs sm:text-sm text-gray-500">minutes</p>
+                            <div className="flex justify-between items-center bg-purple-50 p-3 sm:p-4 rounded-lg">
+                              <span className="text-sm sm:text-base text-gray-600">Time:</span>
+                              <span className="text-lg sm:text-2xl font-bold text-purple-600">{config.duration} min</span>
                             </div>
                           </div>
                         )}
                       </div>
                     </div>
 
-                    {/* STEP 4: Subject Selection */}
+                    {/* STEP 4: Select Subject */}
                     <div>
                       <div className="flex items-center gap-2 sm:gap-3 mb-4">
-                        <div className="w-8 h-8 bg-gray-400 text-white rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0">
+                        <div className="w-8 h-8 bg-indigo-600 text-white rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0">
                           4
                         </div>
                         <label className="flex items-center gap-2 text-base sm:text-lg font-semibold text-gray-900">
-                          <Target className="text-indigo-600" size={20} />
-                          Select Subject
+                          <BookOpen className="text-indigo-600" size={20} />
+                          <span>Select Subject</span>
+                          <span className="text-xs sm:text-sm font-normal text-gray-500">
+                            ({config.category})
+                          </span>
                         </label>
                       </div>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -421,13 +422,13 @@ export default function PracticeSetup() {
                             key={subject.id}
                             type="button"
                             className={`p-4 border-2 rounded-xl transition-all text-left ${config.subjectIds.includes(subject.id)
-                              ? 'border-indigo-600 bg-indigo-50 ring-2 ring-indigo-200'
+                              ? 'border-indigo-600 bg-indigo-50 ring-2 ring-indigo-200 transform scale-105'
                               : 'border-gray-200 hover:border-indigo-300 hover:bg-gray-50'
                               }`}
                             onClick={() => toggleSubject(subject.id)}
                           >
-                            <div className="flex items-center justify-between mb-1">
-                              <div className="font-semibold text-gray-900">{subject.name}</div>
+                            <div className="flex items-start justify-between mb-2">
+                              <div className="font-semibold text-gray-900 text-sm">{subject.name}</div>
                               {config.subjectIds.includes(subject.id) && (
                                 <CheckCircle className="text-indigo-600 flex-shrink-0" size={18} />
                               )}
@@ -440,7 +441,7 @@ export default function PracticeSetup() {
                       </div>
                     </div>
 
-                    {/* STEP 5: Topics */}
+                    {/* STEP 5: Topics (Optional) */}
                     {topics.length > 0 && (
                       <div>
                         <div className="flex items-center gap-2 sm:gap-3 mb-4">
@@ -478,7 +479,7 @@ export default function PracticeSetup() {
                       </div>
                     )}
 
-                    {/* STEP 6: Difficulty */}
+                    {/* STEP 6: Difficulty (Optional) */}
                     <div>
                       <div className="flex items-center gap-2 sm:gap-3 mb-4">
                         <div className="w-8 h-8 bg-gray-400 text-white rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0">
@@ -521,8 +522,9 @@ export default function PracticeSetup() {
                     </button>
                   </>
                 ) : (
+                  // Show category selection if user category not loaded
                   <>
-                    {/* Category Selection */}
+                    {/* STEP 1: Select Category */}
                     <div>
                       <div className="flex items-center gap-2 sm:gap-3 mb-4">
                         <div className="w-8 h-8 bg-indigo-600 text-white rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0">

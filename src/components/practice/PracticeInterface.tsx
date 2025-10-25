@@ -67,7 +67,7 @@ export default function PracticeInterface() {
       await Promise.all(submitPromises);
       await practiceService.completeSession(session.id);
       const resultsResponse = await apiClient.get(`/practice/sessions/${session.id}/results`);
-      localStorage.removeItem('currentPracticeSession');
+      localStorage.removeItem('currentSession');
       navigate(`/practice/${session.id}/results`, {
         state: resultsResponse.data.data,
         replace: true
@@ -93,7 +93,7 @@ export default function PracticeInterface() {
   }, [session, isSubmitting, answers, navigate]);
 
   useEffect(() => {
-    const sessionData = localStorage.getItem('currentPracticeSession');
+    const sessionData = localStorage.getItem('currentSession');
     if (sessionData) {
       try {
         const data = JSON.parse(sessionData);
