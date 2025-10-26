@@ -152,11 +152,19 @@ export default function Dashboard() {
               </div>
 
               {user?.avatar ? (
-                <img
-                  src={getSafeImageUrl(user.avatar, user.id, user.firstName)}
-                  alt="Profile"
-                  className="w-8 h-8 sm:w-10 sm:h-10 rounded-full object-cover border-2 border-indigo-200"
-                />
+                <>
+                  {console.log('🖼️  Avatar URL:', user.avatar)}
+                  {console.log('Safe URL:', getSafeImageUrl(user.avatar, user.id, user.firstName))}
+                  <img
+                    src={getSafeImageUrl(user.avatar, user.id, user.firstName)}
+                    alt="Profile"
+                    className="w-8 h-8 sm:w-10 sm:h-10 rounded-full object-cover border-2 border-indigo-200"
+                    onError={(e) => {
+                      console.error('❌ Image failed to load:', e.currentTarget.src);
+                      e.currentTarget.style.display = 'none';
+                    }}
+                  />
+                </>
               ) : (
                 <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center border-2 border-indigo-200 flex-shrink-0">
                   <span className="text-white font-semibold text-xs sm:text-sm">
@@ -370,7 +378,7 @@ export default function Dashboard() {
                 >
                   <div className="flex items-center gap-3 sm:gap-4 min-w-0">
                     <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${session.score >= 75 ? 'bg-green-100' :
-                        session.score >= 50 ? 'bg-yellow-100' : 'bg-red-100'
+                      session.score >= 50 ? 'bg-yellow-100' : 'bg-red-100'
                       }`}>
                       <Target className={
                         session.score >= 75 ? 'text-green-600' :
@@ -391,7 +399,7 @@ export default function Dashboard() {
                     </div>
                   </div>
                   <p className={`text-xl sm:text-2xl font-bold text-right sm:text-left ${session.score >= 75 ? 'text-green-600' :
-                      session.score >= 50 ? 'text-yellow-600' : 'text-red-600'
+                    session.score >= 50 ? 'text-yellow-600' : 'text-red-600'
                     }`}>
                     {session.score.toFixed(0)}%
                   </p>

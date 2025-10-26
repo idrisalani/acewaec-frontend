@@ -1,16 +1,40 @@
 /**
- * API Configuration - RECONCILED VERSION
- * Handles environment-specific API endpoints
+ * API Configuration - ENHANCED VERSION
+ * Handles environment-specific API endpoints with validation
  * Includes default avatar generation for users without profile pictures
+ * Enhanced with security validation and error handling
  * 
- * Usage:
- * - import.meta.env.VITE_API_BASE_URL for API endpoints
- * - getImageUrl(path) for image URLs
- * - getAvatarUrl(userId, name) for default avatars
+ * Compatible with ISSUE5 avatar fix and all other fixes
  */
 
-// Get API base URL from environment variables
+// Environment variables
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+const AVATAR_STYLE = import.meta.env.VITE_AVATAR_STYLE || 'avataaars';
+
+/**
+ * Validate URL format and security
+ * @param url - URL to validate
+ * @returns true if URL is valid and safe
+ */
+export const validateImageUrl = (url: string | null | undefined): boolean => {
+  if (!url) return false;
+  
+  try {
+    // Check if it's a valid HTTP(S) URL
+    if (url.startsWith('http') || url.startsWith('https')) {
+      new URL(url);
+      return true;
+    }
+    // Check if it's a data URL
+    if (url.startsWith('data:')) return true;
+    // Check if it's a relative path
+    if (url.startsWith('/')) return true;
+    
+    return false;
+  } catch {
+    return false;
+  }
+};
 
 /**
  * Get full image URL from relative path
@@ -58,7 +82,7 @@ export const getApiUrl = (endpoint: string): string => {
  * @param userId - Unique identifier for the user
  * @param name - User's name (for initials display)
  * @param size - Avatar size in pixels (default: 200)
- * @returns Default avatar URL
+ * @returns Default avatar URL from ui-avatars.com
  * 
  * @example
  * getAvatarUrl('user123', 'John Doe') 
@@ -100,7 +124,7 @@ export const getAvatarUrl = (
 export const getAvatarUrlDiceBear = (
   userId: string | undefined,
   name: string | undefined,
-  style: string = 'avataaars'
+  style: string = AVATAR_STYLE
 ): string => {
   const seed = userId || name || 'default';
   return `https://api.dicebear.com/7.x/${style}/svg?seed=${encodeURIComponent(seed)}&scale=80`;
@@ -123,12 +147,10 @@ export const getSafeImageUrl = (
   userId: string | undefined,
   userName: string | undefined
 ): string => {
-  // If user has uploaded an image, use it
-  if (imagePath) {
+  // If user has uploaded an image and it's valid, use it
+  if (imagePath && validateImageUrl(imagePath)) {
     const imageUrl = getImageUrl(imagePath);
-    if (imageUrl) {
-      return imageUrl;
-    }
+    if (imageUrl) return imageUrl;
   }
   
   // Otherwise, generate default avatar
@@ -136,7 +158,29 @@ export const getSafeImageUrl = (
 };
 
 /**
+ * Get valid image URL with validation and error handling
+ * Ensures URL is properly formatted before use
+ * 
+ * @param imagePath - User's image path
+ * @param fallbackUserId - Fallback user ID for avatar generation
+ * @param fallbackName - Fallback name for avatar generation
+ * @returns Valid image URL or default avatar
+ */
+export const getValidImageUrl = (
+  imagePath: string | null | undefined,
+  fallbackUserId?: string,
+  fallbackName?: string
+): string => {
+  if (validateImageUrl(imagePath)) {
+    const url = getImageUrl(imagePath);
+    if (url) return url;
+  }
+  return getAvatarUrl(fallbackUserId, fallbackName);
+};
+
+/**
  * Configuration object for API endpoints
+ * All endpoints use the configured API_BASE_URL
  */
 export const API_ENDPOINTS = {
   BASE: API_BASE_URL,
@@ -150,4 +194,4 @@ export const API_ENDPOINTS = {
   PRACTICE: `${API_BASE_URL}/practice`,
 } as const;
 
-export { API_BASE_URL };
+export { API_BASE_URL, AVATAR_STYLE };
