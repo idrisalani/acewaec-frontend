@@ -206,6 +206,7 @@ export default function PracticeSetup() {
 
   /**
    * Load topics for selected subject
+   * ✅ IMPROVED: Added frontend deduplication for safety
    */
   const loadTopics = async (subjectId: string) => {
     try {
@@ -215,17 +216,46 @@ export default function PracticeSetup() {
       }
 
       setLoading(true);
+      console.log(`🔍 Loading topics for subject: ${subjectId}`);
+      
       const data = await practiceService.getTopics(subjectId);
-      console.log('✅ Loaded topics:', data);
+      console.log(`📊 API returned ${data.length} topics`);
 
-      // Deduplicate topics by ID
-      const uniqueTopics = Array.from(
-        new Map(data.map(t => [t.id, t])).values()
+      // ✅ FRONTEND DEDUPLICATION: Ensure no duplicates reach the UI
+      // This is a safety net in case the backend returns duplicates
+      const uniqueTopicsMap = new Map<string, typeof data[0]>();
+      const apiDuplicates: string[] = [];
+
+      data.forEach(topic => {
+        if (!uniqueTopicsMap.has(topic.id)) {
+          // First occurrence - store it
+          uniqueTopicsMap.set(topic.id, topic);
+          console.log(`✅ Adding topic: ${topic.name}`);
+        } else {
+          // Duplicate detected - log and skip
+          apiDuplicates.push(`${topic.name} (ID: ${topic.id})`);
+          console.warn(`⚠️ Duplicate topic from API (skipped): ${topic.name}`);
+        }
+      });
+
+      // Log if duplicates were detected
+      if (apiDuplicates.length > 0) {
+        console.warn(
+          `⚠️ FRONTEND DEDUP: Removed ${apiDuplicates.length} duplicates from API response`,
+          apiDuplicates
+        );
+      }
+
+      // Convert map to array
+      const uniqueTopics = Array.from(uniqueTopicsMap.values());
+
+      console.log(
+        `✅ Frontend deduplication: ${data.length} from API → ${uniqueTopics.length} unique topics`
       );
 
       setTopics(uniqueTopics);
     } catch (error) {
-      console.error('Failed to load topics:', error);
+      console.error('❌ Failed to load topics:', error);
       setTopics([]);
     } finally {
       setLoading(false);
