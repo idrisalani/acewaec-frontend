@@ -34,6 +34,46 @@ interface Answer {
   flagged: boolean;
 }
 
+interface CachedSession {
+  session: {
+    id: string;
+    name: string;
+    type: string;
+    status: string;
+    score?: number;
+    correctAnswers?: number;
+    totalQuestions?: number;
+    createdAt: string;
+    completedAt?: string;
+    duration?: number;
+  };
+  questions: Question[];
+  totalAvailable?: number;
+}
+
+interface SessionResponse {
+  session: {
+    id: string;
+    name: string;
+    type: string;
+    status: string;
+    score?: number;
+    correctAnswers?: number;
+    totalQuestions?: number;
+    createdAt: string;
+    completedAt?: string;
+    duration?: number;
+  };
+  questions: Question[];
+  totalAvailable?: number;
+}
+
+interface ResultsResponse {
+  data: {
+    data: unknown;
+  };
+}
+
 export default function PracticeSession() {
   const { sessionId } = useParams();
   const navigate = useNavigate();
@@ -49,15 +89,15 @@ export default function PracticeSession() {
   const [showNavigator, setShowNavigator] = useState(false);
   const hasAutoSubmitted = useRef(false);
 
-  const loadSession = useCallback(async () => {
+  const loadSession = useCallback(async (): Promise<void> => {
     try {
       const cached = localStorage.getItem('currentPracticeSession');
       if (cached) {
-        const data = JSON.parse(cached);
+        const data: CachedSession = JSON.parse(cached);
         setQuestions(data.questions);
-        setTimeRemaining(data.session.duration * 60);
+        setTimeRemaining((data.session.duration ?? 60) * 60);
 
-        const initialAnswers = data.questions.map((q: Question) => ({
+        const initialAnswers: Answer[] = data.questions.map((q: Question) => ({
           questionId: q.id,
           selectedAnswer: null,
           timeSpent: 0,
@@ -66,11 +106,11 @@ export default function PracticeSession() {
         setAnswers(initialAnswers);
         localStorage.removeItem('currentPracticeSession');
       } else {
-        const data = await practiceService.getSession(sessionId!);
+        const data: SessionResponse = await practiceService.getSession(sessionId!);
         setQuestions(data.questions);
-        setTimeRemaining(data.session.duration * 60);
+        setTimeRemaining((data.session.duration ?? 60) * 60);
 
-        const initialAnswers = data.questions.map((q: Question) => ({
+        const initialAnswers: Answer[] = data.questions.map((q: Question) => ({
           questionId: q.id,
           selectedAnswer: null,
           timeSpent: 0,
@@ -87,7 +127,7 @@ export default function PracticeSession() {
     }
   }, [sessionId, navigate]);
 
-  const handleSubmit = useCallback(async (isAutoSubmit = false) => {
+  const handleSubmit = useCallback(async (isAutoSubmit = false): Promise<void> => {
     if (submitting) return;
     if (isAutoSubmit && hasAutoSubmitted.current) return;
     if (isAutoSubmit) hasAutoSubmitted.current = true;
@@ -112,7 +152,7 @@ export default function PracticeSession() {
             sessionId!,
             answer.questionId,
             answer.selectedAnswer!
-          ).catch(err => {
+          ).catch((err: Error) => {
             console.error(`Failed to submit answer for question ${answer.questionId}:`, err);
             return null;
           })
@@ -121,7 +161,7 @@ export default function PracticeSession() {
       await Promise.all(submitPromises);
       await practiceService.completeSession(sessionId!);
 
-      const resultsResponse = await apiClient.get(`/practice/sessions/${sessionId}/results`);
+      const resultsResponse: ResultsResponse = await apiClient.get(`/practice/sessions/${sessionId}/results`);
 
       localStorage.removeItem('currentPracticeSession');
       navigate(`/practice/${sessionId}/results`, {
@@ -156,7 +196,7 @@ export default function PracticeSession() {
     }
   }, [timeRemaining, handleSubmit]);
 
-  const handleSelectAnswer = (optionId: string) => {
+  const handleSelectAnswer = (optionId: string): void => {
     const updatedAnswers = [...answers];
     updatedAnswers[currentQuestionIndex] = {
       ...updatedAnswers[currentQuestionIndex],
@@ -165,37 +205,37 @@ export default function PracticeSession() {
     setAnswers(updatedAnswers);
   };
 
-  const handleNextQuestion = () => {
+  const handleNextQuestion = (): void => {
     if (currentQuestionIndex < questions.length - 1) {
       setCurrentQuestionIndex(prev => prev + 1);
       setShowNavigator(false);
     }
   };
 
-  const handlePreviousQuestion = () => {
+  const handlePreviousQuestion = (): void => {
     if (currentQuestionIndex > 0) {
       setCurrentQuestionIndex(prev => prev - 1);
       setShowNavigator(false);
     }
   };
 
-  const handleJumpToQuestion = (index: number) => {
+  const handleJumpToQuestion = (index: number): void => {
     setCurrentQuestionIndex(index);
     setShowNavigator(false);
   };
 
-  const toggleFlag = () => {
+  const toggleFlag = (): void => {
     const updatedAnswers = [...answers];
     updatedAnswers[currentQuestionIndex].flagged = !updatedAnswers[currentQuestionIndex].flagged;
     setAnswers(updatedAnswers);
   };
 
-  const getProgressPercentage = () => {
+  const getProgressPercentage = (): number => {
     const answered = answers.filter(a => a.selectedAnswer).length;
     return (answered / questions.length) * 100;
   };
 
-  const getQuestionStatus = (index: number) => {
+  const getQuestionStatus = (index: number): string => {
     const answer = answers[index];
     if (answer.flagged) return 'flagged';
     if (answer.selectedAnswer) return 'answered';
@@ -204,9 +244,9 @@ export default function PracticeSession() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-indigo-600 mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
           <p className="text-gray-600">Loading practice session...</p>
         </div>
       </div>
@@ -215,8 +255,18 @@ export default function PracticeSession() {
 
   if (questions.length === 0) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-        <p className="text-gray-600 text-center">No questions available</p>
+      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50">
+        <div className="text-center">
+          <AlertTriangle size={48} className="mx-auto mb-4 text-orange-500" />
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">No Questions Found</h2>
+          <p className="text-gray-600 mb-6">This practice session appears to be empty.</p>
+          <button
+            onClick={() => navigate('/practice/setup')}
+            className="px-6 py-3 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 transition-colors"
+          >
+            Create New Session
+          </button>
+        </div>
       </div>
     );
   }
@@ -226,37 +276,41 @@ export default function PracticeSession() {
   const answeredCount = answers.filter(a => a.selectedAnswer).length;
   const flaggedCount = answers.filter(a => a.flagged).length;
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50">
-      {/* Exit Confirmation Modal */}
-      {showExitConfirm && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl p-6 max-w-sm w-full text-center">
-            <AlertTriangle className="text-orange-500 mx-auto mb-4" size={48} />
-            <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-3">Exit Practice?</h3>
-            <p className="text-gray-600 text-sm sm:text-base mb-6">
-              Your progress will be lost if you exit now. Are you sure?
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowExitConfirm(false)}
-                className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 py-2 sm:py-3 rounded-lg font-semibold transition-colors text-sm sm:text-base"
-              >
-                Continue
-              </button>
-              <button
-                onClick={() => navigate('/dashboard')}
-                className="flex-1 bg-red-600 hover:bg-red-700 text-white py-2 sm:py-3 rounded-lg font-semibold transition-colors text-sm sm:text-base"
-              >
-                Exit
-              </button>
-            </div>
+  // Show exit confirmation
+  if (showExitConfirm) {
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 sm:p-8">
+          <div className="flex items-center gap-3 mb-4">
+            <AlertTriangle size={28} className="text-orange-600" />
+            <h2 className="text-2xl font-bold text-gray-900">Exit Session?</h2>
+          </div>
+          <p className="text-gray-600 mb-6">
+            Are you sure you want to exit? Your progress will be lost.
+          </p>
+          <div className="flex gap-4 flex-col-reverse sm:flex-row">
+            <button
+              onClick={() => setShowExitConfirm(false)}
+              className="px-6 py-3 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg font-semibold transition-colors"
+            >
+              Continue Session
+            </button>
+            <button
+              onClick={() => navigate('/practice/setup')}
+              className="px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold transition-colors"
+            >
+              Exit Session
+            </button>
           </div>
         </div>
-      )}
+      </div>
+    );
+  }
 
-      {/* Top Bar */}
-      <div className="bg-white shadow-md sticky top-0 z-40">
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
+      {/* Header */}
+      <div className="bg-white border-b border-gray-200 shadow-sm sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4">
           <div className="flex items-center justify-between gap-3 sm:gap-4">
             {/* Exit Button */}
@@ -282,7 +336,7 @@ export default function PracticeSession() {
                 <div
                   className="bg-gradient-to-r from-indigo-600 to-purple-600 h-full transition-all rounded-full"
                   style={{ width: `${getProgressPercentage()}%` }}
-                ></div>
+                />
               </div>
             </div>
 
@@ -315,7 +369,7 @@ export default function PracticeSession() {
             <div
               className="bg-gradient-to-r from-indigo-600 to-purple-600 h-full transition-all rounded-full"
               style={{ width: `${getProgressPercentage()}%` }}
-            ></div>
+            />
           </div>
         </div>
       </div>
@@ -430,15 +484,15 @@ export default function PracticeSession() {
               {/* Legend */}
               <div className="pt-3 sm:pt-4 border-t space-y-1.5 sm:space-y-2 text-xs sm:text-sm">
                 <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 bg-green-100 rounded"></div>
+                  <div className="w-3 h-3 bg-green-100 rounded" />
                   <span className="text-gray-600">Answered</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 bg-yellow-100 rounded"></div>
+                  <div className="w-3 h-3 bg-yellow-100 rounded" />
                   <span className="text-gray-600">Flagged</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 bg-gray-100 rounded"></div>
+                  <div className="w-3 h-3 bg-gray-100 rounded" />
                   <span className="text-gray-600">Not answered</span>
                 </div>
               </div>
