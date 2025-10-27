@@ -11,7 +11,7 @@ import {
   GraduationCap,
   ArrowRight
 } from 'lucide-react';
-import { practiceService } from '../../services/practice.service';
+import { practiceService, type SessionWithQuestions } from '../../services/practice.service';
 import { setSessionData, SESSION_STORAGE_KEYS } from '../../utils/sessionStorage';
 
 interface Subject {
@@ -111,11 +111,12 @@ export default function PracticeSetup() {
     loadUserProfile();
   }, []);
 
+  // ✅ Effect 1: Load all subjects on mount (once)
   useEffect(() => {
     loadSubjects();
   }, []);
 
-  // ✅ MODIFIED: Only fetch subjects for the user's category
+  // ✅ Effect 2: Handle category changes - reload subjects for category
   useEffect(() => {
     if (config.category) {
       const fetchCategorySubjects = async () => {
@@ -137,7 +138,7 @@ export default function PracticeSetup() {
             topicIds: [],
             questionCount: Math.min(10, total)
           }));
-          setTopics([]);
+          setTopics([]); // ✅ Clear topics when category changes
         } catch (error) {
           console.error('Failed to load category subjects:', error);
         }
@@ -151,13 +152,22 @@ export default function PracticeSetup() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [config.category]);
 
+  /**
+   * ✅ CONSOLIDATED: Effect 3 - Handle subject changes
+   * This replaces multiple fetch calls with a single optimized approach
+   * 
+   * Previously: Would fetch whenever subjectIds changed
+   * Now: Fetches ONLY the first selected subject's topics and deduplicates
+   */
   useEffect(() => {
-    if (config.subjectIds.length === 1) {
-      loadTopics(config.subjectIds[0]);
-    } else {
+    if (!config.subjectIds.length) {
       setTopics([]);
-      setConfig(prev => ({ ...prev, topicIds: [] }));
+      return;
     }
+
+    // ✅ Get topics for the first (and typically only) selected subject
+    const firstSubjectId = config.subjectIds[0];
+    loadTopics(firstSubjectId);
   }, [config.subjectIds]);
 
   const loadSubjects = async () => {
@@ -171,16 +181,28 @@ export default function PracticeSetup() {
     }
   };
 
+  /**
+   * Load topics for selected subject
+   * Consolidated approach to prevent duplicate fetches and API calls
+   */
   const loadTopics = async (subjectId: string) => {
     try {
-      // ✅ Step 1: Type the data variable
-      const data: Topic[] = await practiceService.getTopics(subjectId);
+      if (!subjectId) {
+        setTopics([]);
+        return;
+      }
 
-      // ✅ Remove duplicate topics by ID
+      setLoading(true);
+      
+      // ✅ Fetch topics for the subject
+      const data: Topic[] = await practiceService.getTopics(subjectId);
+      console.log(`📚 Loaded ${data.length} topics for subject ${subjectId}`);
+
+      // ✅ Remove duplicates by ID (if any)
       const seenIds = new Set<string>();
-      // ✅ Step 2: Type the callback parameter
       const uniqueTopics = data.filter((topic: Topic) => {
         if (seenIds.has(topic.id)) {
+          console.warn(`⚠️ Duplicate topic detected: ${topic.name} (${topic.id})`);
           return false;
         }
         seenIds.add(topic.id);
@@ -191,9 +213,14 @@ export default function PracticeSetup() {
         console.warn(`⚠️ Removed ${data.length - uniqueTopics.length} duplicate topics`);
       }
 
+      // ✅ Replace state completely (don't append)
       setTopics(uniqueTopics);
+      console.log(`✅ Set ${uniqueTopics.length} unique topics`);
     } catch (error: unknown) {
       console.error('Failed to load topics:', error);
+      setTopics([]);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -241,8 +268,9 @@ export default function PracticeSetup() {
         category: config.category,
       });
 
-      // Handle wrapped responses
-      const sessionData = response?.data ? response.data : response;
+      // ✅ FIXED: SessionWithQuestions has session and questions directly
+      // No need to check for response.data since the service already unwraps it
+      const sessionData: SessionWithQuestions = response;
 
       // Validate structure
       if (!sessionData?.session?.id || !Array.isArray(sessionData?.questions)) {
@@ -257,83 +285,69 @@ export default function PracticeSetup() {
 
       // Only navigate after successful storage
       navigate(`/practice/interface/${sessionData.session.id}`);
-
     } catch (error) {
-      console.error('Failed to start practice session:', error);
-      alert(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.error('Error starting session:', error);
+      alert(error instanceof Error ? error.message : 'Failed to start practice session');
+    } finally {
       setLoading(false);
     }
   };
 
-  // ✅ NEW: Helper to get selected subject name for summary
   const selectedSubject = subjects.find(s => config.subjectIds.includes(s.id));
 
-  // Show loading while fetching user data
-  if (isLoadingUserData) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-purple-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-12 h-12 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading your profile...</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-purple-50 pt-20 pb-12 px-3 sm:px-4">
-      <main className="max-w-6xl mx-auto">
-        <div className="mb-8">
-          <button
-            onClick={() => navigate('/dashboard')}
-            className="flex items-center gap-2 text-indigo-600 hover:text-indigo-700 font-medium transition-colors"
-          >
-            <Home size={20} />
-            Back to Dashboard
-          </button>
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50">
+      {/* Header */}
+      <header className="bg-white shadow-sm sticky top-0 z-40">
+        <div className="max-w-full px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex items-center justify-between">
+            <button
+              onClick={() => navigate('/dashboard')}
+              className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
+            >
+              <Home size={20} />
+              <span className="hidden sm:inline text-sm font-medium">Dashboard</span>
+            </button>
+            <div className="flex items-center gap-2 sm:gap-3">
+              <BookOpen className="text-indigo-600" size={24} />
+              <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Practice Setup</h1>
+            </div>
+            <div className="w-8"></div>
+          </div>
         </div>
+      </header>
 
-        <div className="grid lg:grid-cols-3 gap-6 lg:gap-8">
+      {/* Main Content */}
+      <main className="max-w-full lg:max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
+          {/* Form Panel */}
           <div className="lg:col-span-2">
             <div className="bg-white rounded-2xl shadow-xl p-6 sm:p-8">
-              <div className="mb-8">
-                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
-                  Practice Setup
-                </h1>
-                <p className="text-gray-600">Configure your practice session</p>
-              </div>
-
-              <form onSubmit={handleSubmit} className="space-y-8">
-                {/* ✅ MODIFIED: Show category section based on user data */}
-                {userCategory ? (
-                  // ✅ NEW: User's category is already selected and shown as read-only
+              <form onSubmit={handleSubmit} className="space-y-6 sm:space-y-8">
+                {isLoadingUserData ? (
+                  // Loading state
+                  <div className="flex justify-center items-center py-12">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+                  </div>
+                ) : userCategory ? (
+                  // ✅ If user has category, show full setup
                   <>
-                    {/* Read-only user category display */}
-                    <div>
-                      <div className="flex items-center gap-2 sm:gap-3 mb-4">
-                        <div className="w-8 h-8 bg-indigo-600 text-white rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0">
-                          1
+                    {/* STEP 1: Category (Auto-Selected) */}
+                    <div className="p-4 bg-indigo-50 border-2 border-indigo-200 rounded-xl">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 sm:gap-3">
+                          <div className="w-8 h-8 bg-indigo-600 text-white rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0">
+                            ✓
+                          </div>
+                          <span className="text-sm sm:text-base font-semibold text-indigo-900">
+                            Category: {userCategory}
+                          </span>
                         </div>
-                        <label className="text-base sm:text-lg font-semibold text-gray-900">
-                          Your Category
-                        </label>
-                      </div>
-                      <div className="p-4 bg-gradient-to-br from-indigo-50 to-purple-50 border-2 border-indigo-300 rounded-xl">
-                        <div className="text-center">
-                          <p className="text-lg sm:text-xl font-bold text-indigo-700 mb-2">
-                            {userCategory}
-                          </p>
-                          <p className="text-xs sm:text-sm text-indigo-600">
-                            ✓ This is your registered category
-                          </p>
-                          <p className="text-xs text-gray-600 mt-2">
-                            All subjects below are for <span className="font-semibold">{userCategory}</span>
-                          </p>
-                        </div>
+                        <CheckCircle className="text-indigo-600" size={20} />
                       </div>
                     </div>
 
-                    {/* STEP 2: Select Number of Questions */}
+                    {/* STEP 2: Number of Questions */}
                     <div>
                       <div className="flex items-center gap-2 sm:gap-3 mb-4">
                         <div className="w-8 h-8 bg-indigo-600 text-white rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0">
@@ -346,21 +360,26 @@ export default function PracticeSetup() {
                       </div>
                       <div className="space-y-3">
                         <input
-                          type="range"
+                          type="number"
                           min="1"
-                          max="50"
+                          max={getAvailableQuestions()}
                           value={config.questionCount}
-                          onChange={(e) => setConfig(prev => ({ ...prev, questionCount: parseInt(e.target.value) }))}
-                          className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                          onChange={(e) => setConfig(prev => ({
+                            ...prev,
+                            questionCount: Math.min(
+                              parseInt(e.target.value) || 10,
+                              getAvailableQuestions()
+                            )
+                          }))}
+                          className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all text-sm sm:text-base"
                         />
-                        <div className="flex justify-between items-center bg-indigo-50 p-3 sm:p-4 rounded-lg">
-                          <span className="text-sm sm:text-base text-gray-600">Questions:</span>
-                          <span className="text-lg sm:text-2xl font-bold text-indigo-600">{config.questionCount}</span>
-                        </div>
+                        <p className="text-xs sm:text-sm text-gray-500">
+                          Available: {getAvailableQuestions()} questions
+                        </p>
                       </div>
                     </div>
 
-                    {/* STEP 3: Duration Settings */}
+                    {/* STEP 3: Duration */}
                     <div>
                       <div className="flex items-center gap-2 sm:gap-3 mb-4">
                         <div className="w-8 h-8 bg-indigo-600 text-white rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0">
@@ -371,38 +390,38 @@ export default function PracticeSetup() {
                           Duration
                         </label>
                       </div>
-                      <div className="space-y-3">
-                        <label className="flex items-center gap-3 p-3 sm:p-4 bg-gray-50 rounded-lg border-2 border-gray-200 hover:border-indigo-300 transition-colors cursor-pointer">
+                      <div className="space-y-3 sm:space-y-4">
+                        <label className="flex items-center gap-3 cursor-pointer">
                           <input
                             type="checkbox"
                             checked={config.hasDuration}
-                            onChange={(e) => setConfig(prev => ({ ...prev, hasDuration: e.target.checked }))}
-                            className="w-5 h-5 text-indigo-600 rounded"
+                            onChange={(e) => setConfig(prev => ({
+                              ...prev,
+                              hasDuration: e.target.checked
+                            }))}
+                            className="w-5 h-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
                           />
-                          <span className="text-sm sm:text-base text-gray-700 font-medium">Set time limit</span>
+                          <span className="text-sm sm:text-base font-medium text-gray-700">
+                            Set time limit
+                          </span>
                         </label>
-
                         {config.hasDuration && (
-                          <div className="space-y-2">
-                            <input
-                              type="range"
-                              min="5"
-                              max="180"
-                              step="5"
-                              value={config.duration}
-                              onChange={(e) => setConfig(prev => ({ ...prev, duration: parseInt(e.target.value) }))}
-                              className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-                            />
-                            <div className="flex justify-between items-center bg-purple-50 p-3 sm:p-4 rounded-lg">
-                              <span className="text-sm sm:text-base text-gray-600">Time:</span>
-                              <span className="text-lg sm:text-2xl font-bold text-purple-600">{config.duration} min</span>
-                            </div>
-                          </div>
+                          <input
+                            type="number"
+                            min="5"
+                            max="180"
+                            value={config.duration}
+                            onChange={(e) => setConfig(prev => ({
+                              ...prev,
+                              duration: parseInt(e.target.value) || 30
+                            }))}
+                            className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all text-sm sm:text-base"
+                          />
                         )}
                       </div>
                     </div>
 
-                    {/* STEP 4: Select Subject */}
+                    {/* STEP 4: Subjects */}
                     <div>
                       <div className="flex items-center gap-2 sm:gap-3 mb-4">
                         <div className="w-8 h-8 bg-indigo-600 text-white rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0">
@@ -410,10 +429,7 @@ export default function PracticeSetup() {
                         </div>
                         <label className="flex items-center gap-2 text-base sm:text-lg font-semibold text-gray-900">
                           <BookOpen className="text-indigo-600" size={20} />
-                          <span>Select Subject</span>
-                          <span className="text-xs sm:text-sm font-normal text-gray-500">
-                            ({config.category})
-                          </span>
+                          Select Subject
                         </label>
                       </div>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -421,16 +437,16 @@ export default function PracticeSetup() {
                           <button
                             key={subject.id}
                             type="button"
-                            className={`p-4 border-2 rounded-xl transition-all text-left ${config.subjectIds.includes(subject.id)
-                              ? 'border-indigo-600 bg-indigo-50 ring-2 ring-indigo-200 transform scale-105'
-                              : 'border-gray-200 hover:border-indigo-300 hover:bg-gray-50'
+                            className={`p-3 border-2 rounded-xl transition-all text-left ${config.subjectIds.includes(subject.id)
+                              ? 'border-indigo-600 bg-indigo-50'
+                              : 'border-gray-200 hover:border-indigo-300'
                               }`}
                             onClick={() => toggleSubject(subject.id)}
                           >
-                            <div className="flex items-start justify-between mb-2">
-                              <div className="font-semibold text-gray-900 text-sm">{subject.name}</div>
+                            <div className="flex items-center justify-between mb-1">
+                              <div className="text-sm font-medium">{subject.name}</div>
                               {config.subjectIds.includes(subject.id) && (
-                                <CheckCircle className="text-indigo-600 flex-shrink-0" size={18} />
+                                <CheckCircle className="text-indigo-600" size={16} />
                               )}
                             </div>
                             <div className="text-xs text-gray-500">
