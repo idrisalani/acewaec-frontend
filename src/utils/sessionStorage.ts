@@ -1,59 +1,100 @@
 // frontend/src/utils/sessionStorage.ts
-// ✅ FIXED - All implicit 'any' types removed
+// ✅ FIXED - SessionStorageKey type used in all function signatures for proper type safety
+
+/**
+ * Session storage keys enum (define first for type safety)
+ */
+export const SESSION_STORAGE_KEYS = {
+  CURRENT_PRACTICE_SESSION: 'currentSession',
+  USER_PREFERENCES: 'userPreferences',
+  TEMP_FORM_DATA: 'tempFormData',
+  AUTH_TOKEN: 'authToken',
+  USER_DATA: 'userData',
+} as const;
+
+/**
+ * Type helper - ensures functions only accept valid keys from SESSION_STORAGE_KEYS
+ * @example
+ * type Key = SessionStorageKey; // 'CURRENT_PRACTICE_SESSION' | 'USER_PREFERENCES' | ...
+ */
+export type SessionStorageKey = keyof typeof SESSION_STORAGE_KEYS;
 
 /**
  * Session Storage Utility
  * Type-safe wrapper around browser's sessionStorage
+ * All functions now properly enforce using keys from SESSION_STORAGE_KEYS
  */
 
 /**
  * Save data to sessionStorage with type safety
- * @param key - Storage key
+ * ✅ FIXED: key parameter now uses SessionStorageKey type
+ * 
+ * @param key - Storage key (must be from SESSION_STORAGE_KEYS enum)
  * @param value - Value to store (will be JSON stringified)
  * @example
- * setSessionData('user', { id: 1, name: 'John' });
+ * setSessionData('USER_DATA', { id: 1, name: 'John' });
+ * setSessionData('CURRENT_PRACTICE_SESSION', sessionData);
  */
-export function setSessionData<T = unknown>(key: string, value: T): void {
+export function setSessionData<T = unknown>(
+  key: SessionStorageKey,
+  value: T
+): void {
   try {
+    const storageKey = SESSION_STORAGE_KEYS[key];
     const serialized = JSON.stringify(value);
-    sessionStorage.setItem(key, serialized);
+    sessionStorage.setItem(storageKey, serialized);
+    console.log(`✅ Saved session data [${storageKey}]`, value);
   } catch (error) {
-    console.error(`Failed to set session data for key "${key}":`, error);
+    console.error(`❌ Failed to set session data for key "${key}":`, error);
   }
 }
 
 /**
  * Retrieve data from sessionStorage with type safety
- * @param key - Storage key
+ * ✅ FIXED: key parameter now uses SessionStorageKey type
+ * 
+ * @param key - Storage key (must be from SESSION_STORAGE_KEYS enum)
  * @param defaultValue - Default value if key doesn't exist
  * @returns Parsed value or default value
  * @example
- * const user = getSessionData<User>('user', null);
+ * const user = getSessionData<User>('USER_DATA', null);
+ * const session = getSessionData<Session>('CURRENT_PRACTICE_SESSION');
  */
-export function getSessionData<T = unknown>(key: string, defaultValue: T | null = null): T | null {
+export function getSessionData<T = unknown>(
+  key: SessionStorageKey,
+  defaultValue: T | null = null
+): T | null {
   try {
-    const stored = sessionStorage.getItem(key);
+    const storageKey = SESSION_STORAGE_KEYS[key];
+    const stored = sessionStorage.getItem(storageKey);
     if (stored === null) {
+      console.log(`ℹ️ No data found for key "${key}"`);
       return defaultValue;
     }
-    return JSON.parse(stored) as T;
+    const parsed = JSON.parse(stored) as T;
+    console.log(`✅ Retrieved session data [${storageKey}]`, parsed);
+    return parsed;
   } catch (error) {
-    console.error(`Failed to get session data for key "${key}":`, error);
+    console.error(`❌ Failed to get session data for key "${key}":`, error);
     return defaultValue;
   }
 }
 
 /**
  * Remove data from sessionStorage
- * @param key - Storage key
+ * ✅ FIXED: key parameter now uses SessionStorageKey type
+ * 
+ * @param key - Storage key (must be from SESSION_STORAGE_KEYS enum)
  * @example
- * removeSessionData('user');
+ * removeSessionData('USER_DATA');
  */
-export function removeSessionData(key: string): void {
+export function removeSessionData(key: SessionStorageKey): void {
   try {
-    sessionStorage.removeItem(key);
+    const storageKey = SESSION_STORAGE_KEYS[key];
+    sessionStorage.removeItem(storageKey);
+    console.log(`✅ Removed session data [${storageKey}]`);
   } catch (error) {
-    console.error(`Failed to remove session data for key "${key}":`, error);
+    console.error(`❌ Failed to remove session data for key "${key}":`, error);
   }
 }
 
@@ -65,23 +106,29 @@ export function removeSessionData(key: string): void {
 export function clearSessionStorage(): void {
   try {
     sessionStorage.clear();
+    console.log('✅ Cleared all session storage');
   } catch (error) {
-    console.error('Failed to clear session storage:', error);
+    console.error('❌ Failed to clear session storage:', error);
   }
 }
 
 /**
  * Check if a key exists in sessionStorage
- * @param key - Storage key
+ * ✅ FIXED: key parameter now uses SessionStorageKey type
+ * 
+ * @param key - Storage key (must be from SESSION_STORAGE_KEYS enum)
  * @returns true if key exists, false otherwise
  * @example
- * if (hasSessionData('user')) { ... }
+ * if (hasSessionData('USER_DATA')) { ... }
  */
-export function hasSessionData(key: string): boolean {
+export function hasSessionData(key: SessionStorageKey): boolean {
   try {
-    return sessionStorage.getItem(key) !== null;
+    const storageKey = SESSION_STORAGE_KEYS[key];
+    const exists = sessionStorage.getItem(storageKey) !== null;
+    console.log(`ℹ️ Session data "${key}" exists: ${exists}`);
+    return exists;
   } catch (error) {
-    console.error(`Failed to check session data for key "${key}":`, error);
+    console.error(`❌ Failed to check session data for key "${key}":`, error);
     return false;
   }
 }
@@ -96,7 +143,7 @@ export function getAllSessionKeys(): string[] {
   try {
     return Object.keys(sessionStorage);
   } catch (error) {
-    console.error('Failed to get session storage keys:', error);
+    console.error('❌ Failed to get session storage keys:', error);
     return [];
   }
 }
@@ -117,22 +164,26 @@ export function getAllSessionData(): Record<string, unknown> {
         data[key] = value ? JSON.parse(value) : null;
       }
     }
+    console.log('✅ Retrieved all session data', data);
     return data;
   } catch (error) {
-    console.error('Failed to get all session data:', error);
+    console.error('❌ Failed to get all session data:', error);
     return {};
   }
 }
 
 /**
  * Update existing data in sessionStorage (merge with existing)
- * @param key - Storage key
+ * ✅ FIXED: key parameter now uses SessionStorageKey type
+ * 
+ * @param key - Storage key (must be from SESSION_STORAGE_KEYS enum)
  * @param updates - Partial updates to merge
  * @example
- * updateSessionData('user', { lastActive: Date.now() });
+ * updateSessionData('USER_DATA', { lastActive: Date.now() });
+ * updateSessionData('CURRENT_PRACTICE_SESSION', { status: 'COMPLETED' });
  */
 export function updateSessionData<T extends Record<string, unknown>>(
-  key: string,
+  key: SessionStorageKey,
   updates: Partial<T>
 ): void {
   try {
@@ -140,9 +191,10 @@ export function updateSessionData<T extends Record<string, unknown>>(
     if (existing !== null && typeof existing === 'object') {
       const merged = { ...existing, ...updates };
       setSessionData(key, merged);
+      console.log(`✅ Updated session data [${SESSION_STORAGE_KEYS[key]}]`, merged);
     }
   } catch (error) {
-    console.error(`Failed to update session data for key "${key}":`, error);
+    console.error(`❌ Failed to update session data for key "${key}":`, error);
   }
 }
 
@@ -154,14 +206,32 @@ export interface SessionData {
 }
 
 /**
- * Session storage keys enum (optional, for type safety)
+ * Usage Examples
+ * ══════════════
+ * 
+ * Save session data:
+ *   setSessionData('CURRENT_PRACTICE_SESSION', {
+ *     session: { id: 'sess-1', ... },
+ *     questions: [...],
+ *     totalAvailable: 50
+ *   });
+ * 
+ * Retrieve session data:
+ *   const session = getSessionData<Session>('CURRENT_PRACTICE_SESSION');
+ * 
+ * Check if data exists:
+ *   if (hasSessionData('USER_DATA')) { ... }
+ * 
+ * Update existing data:
+ *   updateSessionData('USER_DATA', { lastActive: Date.now() });
+ * 
+ * Remove specific data:
+ *   removeSessionData('TEMP_FORM_DATA');
+ * 
+ * Clear everything:
+ *   clearSessionStorage();
+ * 
+ * TypeScript will error if you try to use invalid keys:
+ *   setSessionData('INVALID_KEY', {}); // ❌ TypeScript error
+ *   setSessionData('USER_DATA', {});   // ✅ Works perfectly
  */
-export const SESSION_STORAGE_KEYS = {
-  CURRENT_PRACTICE_SESSION: 'currentSession',
-  USER_PREFERENCES: 'userPreferences',
-  TEMP_FORM_DATA: 'tempFormData',
-  AUTH_TOKEN: 'authToken',
-  USER_DATA: 'userData',
-} as const;
-
-export type SessionStorageKey = typeof SESSION_STORAGE_KEYS[keyof typeof SESSION_STORAGE_KEYS];
