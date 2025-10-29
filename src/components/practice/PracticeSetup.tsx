@@ -317,7 +317,7 @@ export default function PracticeSetup() {
 
       // ✅ Navigate with correct sessionId
       console.log('🎯 Navigating to practice session:', sessionId);
-      navigate(`/practice/${sessionId}`, { replace: true });
+      navigate(`/practice/interface/${sessionId}`, { replace: true });
 
     } catch (error) {
       console.error('❌ Failed to create session:', error);
