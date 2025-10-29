@@ -45,6 +45,7 @@ export interface SessionData {
 
 export interface SessionWithQuestions {
   session: SessionData;
+  sessionId: string;
   questions: Question[];
   totalAvailable?: number;
 }

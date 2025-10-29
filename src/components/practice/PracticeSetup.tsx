@@ -192,17 +192,23 @@ export default function PracticeSetup() {
       return;
     }
 
-    let isMounted = true;  // ✅ Track if component is still mounted
+    const loadTopics = async () => {
+      const topicsData = await practiceService.getTopics(config.subjectIds[0]);
 
-    const firstSubjectId = config.subjectIds[0];
-    
-    // Call loadTopics with isMounted flag
-    loadTopics(firstSubjectId, isMounted);
+      // ✅ FIX: Deduplicate topics by ID (in case backend still returns duplicates)
+      const uniqueTopicsMap = new Map<string, Topic>();
+      topicsData.forEach(topic => {
+        if (!uniqueTopicsMap.has(topic.id)) {
+          uniqueTopicsMap.set(topic.id, topic);
+        }
+      });
+      const uniqueTopics = Array.from(uniqueTopicsMap.values());
 
-    // Cleanup function
-    return () => {
-      isMounted = false;  // ✅ Set flag when effect cleans up
+      console.log(`✅ Loaded ${topicsData.length} topics, ${uniqueTopics.length} unique`);
+      setTopics(uniqueTopics);
     };
+
+    loadTopics();
   }, [config.subjectIds]);
 
   /**
@@ -224,24 +230,24 @@ export default function PracticeSetup() {
    * This prevents state updates after component unmounts
    * and eliminates console duplication from React Strict Mode
    */
-  const loadTopics = async (subjectId: string, isMounted: boolean) => {
-    try {
-      console.log(`📚 Loading topics for subject ID: ${subjectId}`);
-      const response = await practiceService.getTopics(subjectId);
-      
-      // ✅ Only update state if component is still mounted
-      if (isMounted) {
-        console.log(`✅ Loaded ${response.length} topics`);  // Log once, not per topic
-        setTopics(response);
-      } else {
-        console.log('⚠️ Component unmounted, skipping topics update');
-      }
-    } catch (error) {
-      console.error('Failed to load topics:', error);
-    }
-  };
+  // const loadTopics = async (subjectId: string, isMounted: boolean) => {
+  //   try {
+  //     console.log(`📚 Loading topics for subject ID: ${subjectId}`);
+  //     const response = await practiceService.getTopics(subjectId);
 
-  const selectedSubject = useMemo(() => 
+  //     // ✅ Only update state if component is still mounted
+  //     if (isMounted) {
+  //       console.log(`✅ Loaded ${response.length} topics`);  // Log once, not per topic
+  //       setTopics(response);
+  //     } else {
+  //       console.log('⚠️ Component unmounted, skipping topics update');
+  //     }
+  //   } catch (error) {
+  //     console.error('Failed to load topics:', error);
+  //   }
+  // };
+
+  const selectedSubject = useMemo(() =>
     subjects.find(s => config.subjectIds.includes(s.id)),
     [subjects, config.subjectIds]
   );
@@ -267,7 +273,7 @@ export default function PracticeSetup() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!config.subjectIds.length) {
       alert('Please select at least one subject');
       return;
@@ -277,7 +283,8 @@ export default function PracticeSetup() {
     try {
       console.log('🚀 Starting practice session with config:', config);
 
-      const sessionData = await practiceService.startSession({
+      // ✅ FIX: Backend will return sessionId at root level
+      const response = await practiceService.startSession({
         subjectIds: config.subjectIds,
         topicIds: config.topicIds.length > 0 ? config.topicIds : undefined,
         questionCount: config.questionCount,
@@ -286,20 +293,40 @@ export default function PracticeSetup() {
         category: config.category,
       });
 
-      console.log('✅ Session created:', sessionData.session.id);
+      console.log('✅ API Response:', response);
 
-      // Store session in localStorage for quick access
+      // ✅ FIX: Extract sessionId from correct location
+      // Response format: { sessionId: "xxx", session: {...}, questions: [...] }
+      const sessionId = response?.sessionId || response?.session?.id;
+
+      if (!sessionId) {
+        console.error('❌ NO SESSION ID IN RESPONSE:', response);
+        throw new Error('Server did not return session ID');
+      }
+
+      console.log('✅ Session ID extracted:', sessionId);
+
+      // ✅ Store complete session data for offline support
+      const sessionData = {
+        session: response.session,
+        questions: response.questions,
+        totalAvailable: response.totalAvailable,
+      };
+
       setSessionData('CURRENT_PRACTICE_SESSION', sessionData);
 
-      // Navigate to practice session
-      navigate(`/practice/${sessionData.session.id}`, { replace: true });
+      // ✅ Navigate with correct sessionId
+      console.log('🎯 Navigating to practice session:', sessionId);
+      navigate(`/practice/${sessionId}`, { replace: true });
+
     } catch (error) {
-      console.error('Failed to create session:', error);
-      alert('Failed to start practice session. Please try again.');
+      console.error('❌ Failed to create session:', error);
+      const msg = error instanceof Error ? error.message : String(error);
+      alert(`Failed to start session: ${msg}`);
     } finally {
       setLoading(false);
     }
-  };  
+  };
 
   if (isLoadingUserData) {
     return (
