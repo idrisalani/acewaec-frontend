@@ -1,36 +1,67 @@
-// frontend/src/types/practice.ts
-// ✅ FIXED - All types properly defined, no implicit 'any'
-
 /**
- * Practice Module Type Definitions
- * Comprehensive types for the practice/CBT (Computer Based Test) system
+ * @file frontend/src/types/practice.ts
+ * @description AceWAEC Pro - Unified Practice Session Type Definitions
+ * @version 2.0.0
+ * 
+ * This is the authoritative source for all practice/CBT (Computer Based Test) system types.
+ * It consolidates the best features from both:
+ *   - practice.ts (comprehensive types)
+ *   - practice.types.ts (simplified types with state management)
+ * 
+ * Last Updated: October 30, 2025
+ * Status: Ready for Implementation
  */
 
 // ============================================================================
-// BASIC TYPES
+// TYPE LITERALS & CONSTANTS
 // ============================================================================
 
 /**
- * Question difficulty level
+ * Question difficulty level - uppercase enum-like type
+ * @see QUESTION_DIFFICULTIES for validation
  */
 export type QuestionDifficulty = 'EASY' | 'MEDIUM' | 'HARD';
 
 /**
- * User student category
+ * Student category/stream
+ * @see STUDENT_CATEGORIES for validation
  */
 export type StudentCategory = 'SCIENCE' | 'ART' | 'COMMERCIAL';
 
 /**
- * Session status
+ * Practice session status
+ * @see SESSION_STATUSES for validation
  */
 export type SessionStatus = 'ACTIVE' | 'PAUSED' | 'COMPLETED' | 'EXPIRED';
 
+/**
+ * Type of practice session
+ * @see SESSION_TYPES for validation
+ */
+export type SessionType = 'PRACTICE' | 'MOCK' | 'COMPREHENSIVE';
+
+/**
+ * Constant arrays for validation and UI rendering
+ */
+export const QUESTION_DIFFICULTIES = ['EASY', 'MEDIUM', 'HARD'] as const;
+export const STUDENT_CATEGORIES = ['SCIENCE', 'ART', 'COMMERCIAL'] as const;
+export const SESSION_STATUSES = ['ACTIVE', 'PAUSED', 'COMPLETED', 'EXPIRED'] as const;
+export const SESSION_TYPES = ['PRACTICE', 'MOCK', 'COMPREHENSIVE'] as const;
+
 // ============================================================================
-// INTERFACE DEFINITIONS
+// CORE DOMAIN INTERFACES
 // ============================================================================
 
 /**
- * Subject information for practice sessions
+ * Subject/Course information
+ * @example
+ * {
+ *   id: "subj_123",
+ *   name: "English Language",
+ *   code: "EN101",
+ *   categories: ["SCIENCE", "ART"],
+ *   questionCount: 450
+ * }
  */
 export interface Subject {
   id: string;
@@ -45,6 +76,12 @@ export interface Subject {
 
 /**
  * Topic within a subject
+ * @example
+ * {
+ *   id: "topic_456",
+ *   name: "Grammar and Syntax",
+ *   subjectId: "subj_123"
+ * }
  */
 export interface Topic {
   id: string;
@@ -57,16 +94,34 @@ export interface Topic {
 
 /**
  * Multiple choice option for a question
+ * @example
+ * {
+ *   id: "opt_789",
+ *   label: "A",
+ *   content: "This is the first option",
+ *   isCorrect: true
+ * }
  */
 export interface QuestionOption {
   id: string;
-  label: 'A' | 'B' | 'C' | 'D' | 'E'; // Option labels (A, B, C, D, E)
+  label: 'A' | 'B' | 'C' | 'D' | 'E';
   content: string;
-  isCorrect?: boolean; // Only sent to backend for grading
+  /** Only sent to backend for grading, not to client */
+  isCorrect?: boolean;
 }
 
 /**
  * Practice question
+ * @example
+ * {
+ *   id: "q_001",
+ *   content: "Which of the following is correct?",
+ *   difficulty: "MEDIUM",
+ *   subject: { name: "English Language" },
+ *   options: [...],
+ *   tags: ["grammar", "verb-tense"],
+ *   explanation: "The correct answer is..."
+ * }
  */
 export interface Question {
   id: string;
@@ -83,70 +138,82 @@ export interface Question {
   options: QuestionOption[];
   imageUrl?: string;
   category?: StudentCategory;
-  explanation?: string; // Shown after session completion
+  /** Tags for filtering and categorization */
+  tags?: string[];
+  /** Explanation shown after session completion */
+  explanation?: string;
 }
 
 /**
  * Practice session
+ * @example
+ * {
+ *   id: "sess_123",
+ *   name: "English Language - Practice",
+ *   userId: "user_456",
+ *   type: "PRACTICE",
+ *   status: "ACTIVE",
+ *   duration: 60,
+ *   category: "SCIENCE",
+ *   questionCount: 50,
+ *   startedAt: "2025-10-30T10:00:00Z",
+ *   createdAt: "2025-10-30T10:00:00Z"
+ * }
  */
 export interface PracticeSession {
   id: string;
+  name: string;
   userId?: string;
+  type: SessionType;
+  status: SessionStatus;
   duration: number; // in minutes
-  startedAt?: string;
-  completedAt?: string;
-  status?: SessionStatus;
   category?: StudentCategory;
   questionCount?: number;
+  startedAt?: string;
+  createdAt: string;
+  completedAt?: string;
+  updatedAt?: string;
+  /** Client-side calculated time remaining */
+  timeRemaining?: number;
 }
 
 /**
- * User answer to a question
+ * User's answer to a question
+ * @example
+ * {
+ *   questionId: "q_001",
+ *   selectedAnswer: "A",
+ *   correctAnswer: "B",
+ *   isCorrect: false,
+ *   timeSpent: 45,
+ *   flagged: true
+ * }
  */
 export interface UserAnswer {
   questionId: string;
   selectedAnswer: string | null;
+  correctAnswer?: string;
   isCorrect?: boolean;
-  timeSpent?: number; // in seconds
+  /** Time spent answering in seconds */
+  timeSpent?: number;
   flagged?: boolean;
-}
-
-/**
- * Practice session with questions
- */
-export interface PracticeSessionData {
-  session: PracticeSession;
-  questions: Question[];
-}
-
-/**
- * Configuration for starting a practice session
- */
-export interface PracticeSessionConfig {
-  subjectIds: string[];
-  topicIds?: string[];
-  questionCount: number;
-  duration?: number;
   difficulty?: QuestionDifficulty;
-  hasDuration: boolean;
-  category?: StudentCategory;
-}
-
-/**
- * API Response for starting a session
- */
-export interface StartSessionResponse {
-  success?: boolean;
-  session: PracticeSession;
-  questions: Question[];
-  data?: {
-    session: PracticeSession;
-    questions: Question[];
-  };
 }
 
 /**
  * Session results/analytics
+ * @example
+ * {
+ *   sessionId: "sess_123",
+ *   totalQuestions: 50,
+ *   answeredQuestions: 48,
+ *   correctAnswers: 42,
+ *   wrongAnswers: 6,
+ *   unanswered: 2,
+ *   score: 84,
+ *   timeSpent: 2400,
+ *   completedAt: "2025-10-30T11:00:00Z"
+ * }
  */
 export interface SessionResults {
   sessionId: string;
@@ -154,51 +221,22 @@ export interface SessionResults {
   answeredQuestions: number;
   correctAnswers: number;
   wrongAnswers: number;
-  score: number; // percentage
-  timeSpent: number; // in seconds
+  unanswered: number;
+  score: number; // percentage (0-100)
+  /** Total time spent in seconds */
+  timeSpent: number;
   answers: UserAnswer[];
   startedAt: string;
   completedAt: string;
-  difficulty: QuestionDifficulty;
-  subject: {
+  difficulty?: QuestionDifficulty;
+  subject?: {
     name: string;
   };
 }
 
 /**
- * Question statistics (for analytics)
- */
-export interface QuestionStats {
-  questionId: string;
-  content: string;
-  difficulty: QuestionDifficulty;
-  answeredByUsers: number;
-  correctByUsers: number;
-  successRate: number; // percentage
-}
-
-/**
- * User practice statistics
- */
-export interface UserPracticeStats {
-  totalSessions: number;
-  totalQuestionsAttempted: number;
-  averageScore: number; // percentage
-  averageTimePerQuestion: number; // in seconds
-  bySubject: Record<string, {
-    sessions: number;
-    score: number;
-    questionsAttempted: number;
-  }>;
-  byDifficulty: Record<QuestionDifficulty, {
-    attempted: number;
-    correct: number;
-    score: number;
-  }>;
-}
-
-/**
- * Flag information for a question
+ * Flagged question tracking
+ * Used for marking questions to review later
  */
 export interface FlaggedQuestion {
   sessionId: string;
@@ -207,25 +245,212 @@ export interface FlaggedQuestion {
   flaggedAt?: string;
 }
 
+// ============================================================================
+// CLIENT STATE MANAGEMENT
+// ============================================================================
+
 /**
- * Submission response when submitting an answer
+ * Client-side practice session state
+ * Used with React Context or state management
  */
-export interface AnswerSubmissionResponse {
-  success: boolean;
+export interface PracticeState {
+  session: PracticeSession | null;
+  questions: Question[];
+  /** Current question index (0-based) */
+  currentIndex: number;
+  /** Mapping of questionId to selected answer */
+  answers: Record<string, string>;
+  /** Time left in seconds */
+  timeLeft: number;
+  loading: boolean;
+  isSubmitting: boolean;
+  error: string | null;
+}
+
+/**
+ * Actions for updating practice state
+ * Used with React Context or dispatch
+ */
+export interface PracticeActions {
+  setSession: (session: PracticeSession | null) => void;
+  setQuestions: (questions: Question[]) => void;
+  setCurrentIndex: (index: number) => void;
+  setAnswer: (questionId: string, answer: string) => void;
+  setTimeLeft: (time: number) => void;
+  setLoading: (loading: boolean) => void;
+  setSubmitting: (submitting: boolean) => void;
+  setError: (error: string | null) => void;
+}
+
+// ============================================================================
+// API REQUEST TYPES
+// ============================================================================
+
+/**
+ * Get subjects request
+ */
+export interface GetSubjectsRequest {
+  category?: StudentCategory;
+}
+
+/**
+ * Get topics request
+ */
+export interface GetTopicsRequest {
+  subjectId: string;
+}
+
+/**
+ * Start practice session request
+ */
+export type StartSessionRequest = {
+  subjectIds: string[];
+  topicIds?: string[];
+  questionCount: number;
+  duration?: number;
+  difficulty?: QuestionDifficulty;
+  hasDuration: boolean;
+  category?: StudentCategory;
+};
+
+/**
+ * Submit answer request
+ */
+export interface SubmitAnswerRequest {
+  sessionId: string;
   questionId: string;
+  answer: string;
+}
+
+/**
+ * Complete session request
+ */
+export interface CompleteSessionRequest {
+  sessionId: string;
+}
+
+/**
+ * Get results request
+ */
+export interface GetResultsRequest {
+  sessionId: string;
+}
+
+/**
+ * Toggle flag on question request
+ */
+export interface ToggleFlagRequest {
+  sessionId: string;
+  questionId: string;
+  flagged: boolean;
+}
+
+/**
+ * Pause session request
+ */
+export interface PauseSessionRequest {
+  sessionId: string;
+}
+
+/**
+ * Resume session request
+ */
+export interface ResumeSessionRequest {
+  sessionId: string;
+}
+
+// ============================================================================
+// API RESPONSE TYPES
+// ============================================================================
+
+/**
+ * Get subjects response
+ */
+export interface GetSubjectsResponse {
+  success: boolean;
+  data: Subject[];
+}
+
+/**
+ * Get topics response
+ */
+export interface GetTopicsResponse {
+  success: boolean;
+  data: Topic[];
+}
+
+/**
+ * Get session response
+ */
+export interface GetSessionResponse {
+  success: boolean;
+  data: PracticeSession;
+}
+
+/**
+ * Get session questions response
+ */
+export interface GetSessionQuestionsResponse {
+  success: boolean;
+  data: Question[];
+}
+
+/**
+ * Start session response
+ */
+export interface StartSessionResponse {
+  success: boolean;
+  session: PracticeSession;
+  questions: Question[];
+}
+
+/**
+ * Submit answer response
+ */
+export interface SubmitAnswerResponse {
+  success: boolean;
   isCorrect?: boolean;
-  explanation?: string;
   message?: string;
 }
 
 /**
- * Session completion response
+ * Complete session response
  */
-export interface SessionCompletionResponse {
+export interface CompleteSessionResponse {
   success: boolean;
-  sessionId: string;
-  message: string;
   results?: SessionResults;
+}
+
+/**
+ * Get results response
+ */
+export interface GetResultsResponse {
+  success: boolean;
+  data: SessionResults;
+}
+
+/**
+ * Toggle flag response
+ */
+export interface ToggleFlagResponse {
+  success: boolean;
+  message?: string;
+}
+
+/**
+ * Pause session response
+ */
+export interface PauseSessionResponse {
+  success: boolean;
+  message?: string;
+}
+
+/**
+ * Resume session response
+ */
+export interface ResumeSessionResponse {
+  success: boolean;
+  message?: string;
 }
 
 /**
@@ -240,7 +465,8 @@ export interface ErrorResponse {
 }
 
 /**
- * Generic API Response wrapper
+ * Generic API response wrapper
+ * @template T The type of data being wrapped
  */
 export interface ApiResponse<T = unknown> {
   success: boolean;
@@ -250,32 +476,44 @@ export interface ApiResponse<T = unknown> {
 }
 
 // ============================================================================
-// TYPE GUARDS (Helper functions for runtime type checking)
+// TYPE GUARDS (Runtime Type Checking)
 // ============================================================================
 
 /**
- * Check if value is a valid QuestionDifficulty
+ * Type guard for QuestionDifficulty
+ * @example
+ * if (isQuestionDifficulty(value)) {
+ *   // value is now typed as QuestionDifficulty
+ * }
  */
 export function isQuestionDifficulty(value: unknown): value is QuestionDifficulty {
-  return typeof value === 'string' && ['EASY', 'MEDIUM', 'HARD'].includes(value);
+  return typeof value === 'string' && QUESTION_DIFFICULTIES.includes(value as QuestionDifficulty);
 }
 
 /**
- * Check if value is a valid StudentCategory
+ * Type guard for StudentCategory
  */
 export function isStudentCategory(value: unknown): value is StudentCategory {
-  return typeof value === 'string' && ['SCIENCE', 'ART', 'COMMERCIAL'].includes(value);
+  return typeof value === 'string' && STUDENT_CATEGORIES.includes(value as StudentCategory);
 }
 
 /**
- * Check if value is a valid SessionStatus
+ * Type guard for SessionStatus
  */
 export function isSessionStatus(value: unknown): value is SessionStatus {
-  return typeof value === 'string' && ['ACTIVE', 'PAUSED', 'COMPLETED', 'EXPIRED'].includes(value);
+  return typeof value === 'string' && SESSION_STATUSES.includes(value as SessionStatus);
 }
 
 /**
- * Check if value is a valid Question
+ * Type guard for SessionType
+ */
+export function isSessionType(value: unknown): value is SessionType {
+  return typeof value === 'string' && SESSION_TYPES.includes(value as SessionType);
+}
+
+/**
+ * Type guard for Question
+ * Validates structure and required fields
  */
 export function isQuestion(value: unknown): value is Question {
   if (!value || typeof value !== 'object') return false;
@@ -290,7 +528,7 @@ export function isQuestion(value: unknown): value is Question {
 }
 
 /**
- * Check if value is a valid QuestionOption
+ * Type guard for QuestionOption
  */
 export function isQuestionOption(value: unknown): value is QuestionOption {
   if (!value || typeof value !== 'object') return false;
@@ -303,15 +541,32 @@ export function isQuestionOption(value: unknown): value is QuestionOption {
 }
 
 /**
- * Check if value is a valid PracticeSessionData
+ * Type guard for PracticeSession
+ * Validates structure and required fields
  */
-export function isPracticeSessionData(value: unknown): value is PracticeSessionData {
+export function isSessionData(value: unknown): value is PracticeSession {
   if (!value || typeof value !== 'object') return false;
-  const data = value as Record<string, unknown>;
+  const s = value as Record<string, unknown>;
   return (
-    typeof data.session === 'object' &&
-    (data.session as Record<string, unknown>).id !== undefined &&
-    Array.isArray(data.questions)
+    typeof s.id === 'string' &&
+    typeof s.name === 'string' &&
+    isSessionType(s.type) &&
+    isSessionStatus(s.status)
+  );
+}
+
+/**
+ * Type guard for SessionResults
+ */
+export function isSessionResults(value: unknown): value is SessionResults {
+  if (!value || typeof value !== 'object') return false;
+  const r = value as Record<string, unknown>;
+  return (
+    typeof r.sessionId === 'string' &&
+    typeof r.totalQuestions === 'number' &&
+    typeof r.correctAnswers === 'number' &&
+    typeof r.score === 'number' &&
+    Array.isArray(r.answers)
   );
 }
 
@@ -320,12 +575,14 @@ export function isPracticeSessionData(value: unknown): value is PracticeSessionD
 // ============================================================================
 
 /**
- * Extract the status of a session
+ * Partial session status update type
+ * Useful for PATCH requests
  */
 export type SessionStatusUpdate = Partial<Pick<PracticeSession, 'status' | 'completedAt'>>;
 
 /**
- * Question with additional metadata
+ * Question with additional client-side metadata
+ * Used in UI components for tracking state
  */
 export interface QuestionWithMetadata extends Question {
   isAnswered?: boolean;
@@ -334,157 +591,15 @@ export interface QuestionWithMetadata extends Question {
   timeSpent?: number;
 }
 
-// ============================================================================
-// API REQUEST/RESPONSE TYPES (Modern ES Module Syntax)
-// ============================================================================
-
 /**
- * Get Subjects Request
+ * Extended session data with client-side calculations
+ * Used in UI for display
  */
-export interface GetSubjectsRequest {
-  category?: StudentCategory;
+export interface ExtendedSession extends PracticeSession {
+  timeRemaining?: number;
+  elapsedTime?: number;
+  progressPercentage?: number;
 }
-
-/**
- * Get Subjects Response
- */
-export interface GetSubjectsResponse {
-  success: boolean;
-  data: Subject[];
-}
-
-/**
- * Get Topics Request
- */
-export interface GetTopicsRequest {
-  subjectId: string;
-}
-
-/**
- * Get Topics Response
- */
-export interface GetTopicsResponse {
-  success: boolean;
-  data: Topic[];
-}
-
-/**
- * Start Session Request - Extends PracticeSessionConfig with all required fields
- */
-export type StartSessionRequest = PracticeSessionConfig;
-
-/**
- * Start Session Response
- */
-export interface StartSessionResponse {
-  success?: boolean;
-  session: PracticeSession;
-  questions: Question[];
-}
-
-/**
- * Submit Answer Request
- */
-export interface SubmitAnswerRequest {
-  sessionId: string;
-  questionId: string;
-  answer: string;
-}
-
-/**
- * Submit Answer Response
- */
-export interface SubmitAnswerResponse {
-  success: boolean;
-  isCorrect?: boolean;
-  message?: string;
-}
-
-/**
- * Complete Session Request
- */
-export interface CompleteSessionRequest {
-  sessionId: string;
-}
-
-/**
- * Complete Session Response
- */
-export interface CompleteSessionResponse {
-  success: boolean;
-  results?: SessionResults;
-}
-
-/**
- * Get Results Request
- */
-export interface GetResultsRequest {
-  sessionId: string;
-}
-
-/**
- * Get Results Response
- */
-export interface GetResultsResponse {
-  success: boolean;
-  data: SessionResults;
-}
-
-/**
- * Toggle Flag Request
- */
-export interface ToggleFlagRequest {
-  sessionId: string;
-  questionId: string;
-  flagged: boolean;
-}
-
-/**
- * Toggle Flag Response
- */
-export interface ToggleFlagResponse {
-  success: boolean;
-  message?: string;
-}
-
-/**
- * Pause Session Request
- */
-export interface PauseSessionRequest {
-  sessionId: string;
-}
-
-/**
- * Pause Session Response
- */
-export interface PauseSessionResponse {
-  success: boolean;
-  message?: string;
-}
-
-/**
- * Resume Session Request
- */
-export interface ResumeSessionRequest {
-  sessionId: string;
-}
-
-/**
- * Resume Session Response
- */
-export interface ResumeSessionResponse {
-  success: boolean;
-  message?: string;
-}
-
-// ============================================================================
-// CONSTANTS
-// ============================================================================
-
-export const QUESTION_DIFFICULTIES = ['EASY', 'MEDIUM', 'HARD'] as const;
-export const STUDENT_CATEGORIES = ['SCIENCE', 'ART', 'COMMERCIAL'] as const;
-export const OPTION_LABELS = ['A', 'B', 'C', 'D', 'E'] as const;
-export const SESSION_STATUSES = ['ACTIVE', 'PAUSED', 'COMPLETED', 'EXPIRED'] as const;
 
 // ============================================================================
 // EXPORT SUMMARY
@@ -493,25 +608,47 @@ export const SESSION_STATUSES = ['ACTIVE', 'PAUSED', 'COMPLETED', 'EXPIRED'] as 
 /**
  * Type exports organized by category:
  *
- * Types:
+ * **Type Literals:**
  * - QuestionDifficulty
  * - StudentCategory
  * - SessionStatus
+ * - SessionType
  *
- * Interfaces:
- * - Subject, Topic, Question, QuestionOption
- * - PracticeSession, PracticeSessionData, PracticeSessionConfig
- * - UserAnswer, SessionResults
- * - UserPracticeStats, FlaggedQuestion
- * - ErrorResponse, ApiResponse
+ * **Constants for Validation:**
+ * - QUESTION_DIFFICULTIES
+ * - STUDENT_CATEGORIES
+ * - SESSION_STATUSES
+ * - SESSION_TYPES
  *
- * Type Guards:
- * - isQuestion(), isQuestionOption(), isPracticeSessionData()
- * - isQuestionDifficulty(), isStudentCategory(), isSessionStatus()
+ * **Core Interfaces:**
+ * - Subject, Topic, QuestionOption, Question
+ * - PracticeSession, UserAnswer, SessionResults, FlaggedQuestion
  *
- * API Types:
- * - PracticeAPI.* (all request/response types)
+ * **State Management:**
+ * - PracticeState, PracticeActions
  *
- * Constants:
- * - QUESTION_DIFFICULTIES, STUDENT_CATEGORIES, OPTION_LABELS, SESSION_STATUSES
+ * **API Request Types:**
+ * - GetSubjectsRequest, GetTopicsRequest
+ * - StartSessionRequest, SubmitAnswerRequest
+ * - CompleteSessionRequest, GetResultsRequest
+ * - ToggleFlagRequest, PauseSessionRequest, ResumeSessionRequest
+ *
+ * **API Response Types:**
+ * - GetSubjectsResponse, GetTopicsResponse
+ * - GetSessionResponse, GetSessionQuestionsResponse
+ * - StartSessionResponse, SubmitAnswerResponse
+ * - CompleteSessionResponse, GetResultsResponse
+ * - ToggleFlagResponse, PauseSessionResponse, ResumeSessionResponse
+ * - ErrorResponse, ApiResponse<T>
+ *
+ * **Type Guards:**
+ * - isQuestionDifficulty(), isStudentCategory()
+ * - isSessionStatus(), isSessionType()
+ * - isQuestion(), isQuestionOption()
+ * - isSessionData(), isSessionResults()
+ *
+ * **Utility Types:**
+ * - SessionStatusUpdate
+ * - QuestionWithMetadata
+ * - ExtendedSession
  */

@@ -1,6 +1,10 @@
 /**
  * frontend/src/services/practice.service.ts
- * ✅ FIXED VERSION - All TypeScript & ESLint errors resolved
+ * ✅ UPDATED - Added imageUrl and duration support
+ * 
+ * Updated interfaces:
+ * - Question: Added optional imageUrl property
+ * - SessionData: Added optional duration property (in minutes)
  * 
  * Fixed issues:
  * - Removed duplicate method definitions
@@ -41,6 +45,7 @@ export interface SessionData {
   totalQuestions?: number;
   createdAt: string;
   completedAt?: string;
+  duration?: number;  // ✅ ADDED - Duration in minutes
 }
 
 export interface SessionWithQuestions {
@@ -53,6 +58,7 @@ export interface SessionWithQuestions {
 export interface Question {
   id: string;
   content: string;
+  imageUrl?: string;  // ✅ ADDED - Optional image URL for question illustration
   difficulty: 'EASY' | 'MEDIUM' | 'HARD';
   explanation?: string;
   correctAnswer: string;
@@ -474,7 +480,9 @@ export const practiceService = {
   }
 };
 
-// Add missing Topic interface that was used but not defined
+/**
+ * Topic interface used in getTopics
+ */
 export interface Topic {
   id: string;
   name: string;
