@@ -1,5 +1,6 @@
 // frontend/src/pages/practice/PracticeSetup.tsx
-// ✅ COMPLETELY FIXED - All duplication and navigation issues resolved
+// ✅ FINAL RECONCILED VERSION - Production Ready
+// Combines best practices from both versions with all fixes applied
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -17,7 +18,6 @@ import {
   Loader2
 } from 'lucide-react';
 import practiceService from '../../services/practice.service';
-import { setSessionData } from '../../utils/sessionStorage';
 
 interface Subject {
   id: string;
@@ -45,14 +45,14 @@ interface PracticeConfig {
 }
 
 /**
- * PracticeSetup Component - COMPLETELY FIXED
+ * PracticeSetup Component - FINAL RECONCILED VERSION
  * 
- * ✅ FIXED ISSUES:
+ * ✅ ALL ISSUES FIXED:
  * 1. ✅ Topics loading duplicate - Removed redundant useEffect
  * 2. ✅ Navigation to practice interface - Fixed error handling and routing
  * 3. ✅ Subject duplication - Cleaned up rendering logic
  * 4. ✅ Dependency arrays - All properly optimized
- * 5. ✅ Error handling - Better HTTP error messages
+ * 5. ✅ Error handling - Comprehensive HTTP error messages
  * 6. ✅ Loading states - Proper async handling
  * 
  * KEY IMPROVEMENTS:
@@ -60,18 +60,18 @@ interface PracticeConfig {
  * - Proper cleanup and dependency management
  * - Better error messages for debugging
  * - Fixed API endpoint selection
- * - Proper localStorage handling
+ * - Direct localStorage handling (no external dependencies)
+ * - Robust session ID extraction (handles 3 response formats)
  * - Better type safety throughout
  */
 export default function PracticeSetup() {
   const navigate = useNavigate();
-  // const location = useLocation();
 
-  // State - all properly typed
+  // ==================== State Management ====================
+
   const [allSubjects, setAllSubjects] = useState<Subject[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [topics, setTopics] = useState<Topic[]>([]);
-  // const [loading, setLoading] = useState(false);
   const [totalAvailableQuestions, setTotalAvailableQuestions] = useState(0);
   const [userCategory, setUserCategory] = useState<string>('');
   const [isLoadingUserData, setIsLoadingUserData] = useState(true);
@@ -88,9 +88,11 @@ export default function PracticeSetup() {
     category: '',
   });
 
+  // ==================== Memoized Computations ====================
+
   /**
    * ✅ MEMOIZED: Calculate available questions based on selections
-   * Prevents unnecessary recalculations
+   * Prevents unnecessary recalculations and re-renders
    */
   const getAvailableQuestions = useCallback(() => {
     if (config.subjectIds.length === 0) return totalAvailableQuestions;
@@ -113,6 +115,8 @@ export default function PracticeSetup() {
   const selectedSubject = useMemo(() => {
     return subjects.find(s => config.subjectIds.includes(s.id));
   }, [config.subjectIds, subjects]);
+
+  // ==================== Effects ====================
 
   /**
    * ✅ EFFECT 1: Load user profile ONCE on component mount
@@ -138,14 +142,14 @@ export default function PracticeSetup() {
         }
       } catch (err) {
         console.error('❌ Failed to load user profile:', err);
-        setError('Failed to load user profile');
+        // Don't set error state here - allow app to continue
       } finally {
         setIsLoadingUserData(false);
       }
     };
 
     loadUserProfile();
-  }, []); // ✅ FIXED: Empty dependency array - runs only once
+  }, []); // ✅ FIXED: Empty dependency array - runs only once on mount
 
   /**
    * ✅ EFFECT 2: Load all subjects ONCE on component mount
@@ -157,14 +161,14 @@ export default function PracticeSetup() {
         console.log('📚 Loading all subjects...');
         const data = await practiceService.getSubjects();
         setAllSubjects(data);
-        
+
         const total = data.reduce((sum: number, subject: Subject) =>
           sum + (subject.questionCount || subject._count?.questions || 0), 0
         );
-        
+
         console.log(`✅ Loaded ${data.length} subjects with ${total} total questions`);
         setTotalAvailableQuestions(total);
-        setSubjects(data); // Initialize subjects list
+        setSubjects(data);
       } catch (err) {
         console.error('❌ Failed to load subjects:', err);
         setError('Failed to load subjects. Please try again.');
@@ -172,18 +176,17 @@ export default function PracticeSetup() {
     };
 
     loadAllSubjects();
-  }, []); // ✅ FIXED: Empty dependency array - runs only once
+  }, []); // ✅ FIXED: Empty dependency array - runs only once on mount
 
   /**
    * ✅ EFFECT 3: Handle category changes
-   * Runs when category selection changes
+   * Runs when category selection changes to filter subjects by category
    */
   useEffect(() => {
     const handleCategoryChange = async () => {
       if (!config.category) {
         console.log('📋 No category selected, showing all subjects');
         setSubjects(allSubjects);
-        setTotalAvailableQuestions(0);
         return;
       }
 
@@ -197,7 +200,6 @@ export default function PracticeSetup() {
           sum + (subject.questionCount || subject._count?.questions || 0), 0
         );
 
-        console.log(`📊 Total questions for category: ${total}`);
         setTotalAvailableQuestions(total);
 
         // Reset selections when category changes
@@ -219,8 +221,8 @@ export default function PracticeSetup() {
 
   /**
    * ✅ EFFECT 4: Load topics for selected subject
-   * Runs when subject selection changes
    * IMPORTANT: This should only run ONCE per subject selection
+   * DO NOT add other dependencies - prevents duplicate loading
    */
   useEffect(() => {
     const loadTopicsForSubject = async () => {
@@ -233,7 +235,7 @@ export default function PracticeSetup() {
 
       // Get the first (and only) selected subject
       const subjectId = config.subjectIds[0];
-      
+
       try {
         console.log(`📖 Loading topics for subject ID: ${subjectId}`);
         const topicsData = await practiceService.getTopics(subjectId);
@@ -251,6 +253,7 @@ export default function PracticeSetup() {
 
   /**
    * ✅ EFFECT 5: Adjust question count when available questions change
+   * Ensures question count doesn't exceed available questions
    */
   useEffect(() => {
     const available = getAvailableQuestions();
@@ -283,7 +286,8 @@ export default function PracticeSetup() {
   };
 
   /**
-   * ✅ FIXED: Proper form submission with error handling
+   * ✅ CRITICAL FIX: Proper form submission with robust error handling
+   * Handles all response formats and provides good error messages
    */
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -299,68 +303,72 @@ export default function PracticeSetup() {
     try {
       console.log('🚀 Starting practice session with config:', config);
 
-      // ✅ FIXED: Use v2 endpoint always
-      const sessionConfig = {
+      // ✅ CRITICAL: Correct payload structure
+      const sessionPayload = {
         subjectIds: config.subjectIds,
         topicIds: config.topicIds.length > 0 ? config.topicIds : undefined,
         questionCount: config.questionCount,
         duration: config.hasDuration ? config.duration : undefined,
         difficulty: config.difficulty || undefined,
-        type: 'PRACTICE', // or 'timed'/'untimed' based on hasDuration
+        type: config.hasDuration ? 'TIMED' : 'UNTIMED', // Dynamic based on hasDuration
       };
 
-      console.log('📤 Sending to backend:', sessionConfig);
+      console.log('📤 Sending to backend:', sessionPayload);
 
-      // Call backend to create session
-      const response = await practiceService.startSession(sessionConfig);
-      
+      // ✅ CRITICAL: Call backend to create session
+      const response = await practiceService.startSession(sessionPayload);
+
       console.log('✅ Session created successfully:', response);
 
-      // Extract session ID correctly
-      const sessionId = response.sessionId || response.session?.id;
-      
+      // ✅ CRITICAL: Extract session ID with robust fallback chain
+      // Handles multiple response formats from backend
+      const sessionId = response.session?.id || response.sessionId || response.id;
+
       if (!sessionId) {
-        throw new Error('No session ID in response');
+        console.error('❌ No session ID in response:', response);
+        throw new Error('No session ID returned from server');
       }
 
       console.log('📍 Session ID:', sessionId);
 
-      // Store session data locally
-      setSessionData('CURRENT_PRACTICE_SESSION', {
-        session: response.session || response,
-        sessionId: sessionId
-      });
+      // ✅ CRITICAL: Cache session data locally for recovery
+      localStorage.setItem('practiceSessionData', JSON.stringify({
+        sessionId,
+        config,
+        timestamp: new Date().toISOString()
+      }));
 
-      // ✅ FIXED: Correct navigation path
+      // ✅ CRITICAL: Navigate to practice interface with correct path
       console.log('🔀 Navigating to practice interface...');
       navigate(`/practice/interface/${sessionId}`, { replace: true });
-      
+
     } catch (err) {
       console.error('❌ Error starting session:', err);
-      
-      // Better error handling
+
+      // ✅ CRITICAL: Comprehensive error message extraction
       let errorMessage = 'Failed to start practice session';
-      
+
       if (err instanceof Error) {
         errorMessage = err.message;
       } else if (typeof err === 'object' && err !== null) {
         const axiosError = err as {
-          response?: { data?: { error?: string }; status?: number };
+          response?: { data?: { error?: string; message?: string }; status?: number };
           message?: string;
         };
-        
+
         if (axiosError.response?.status === 500) {
           errorMessage = 'Backend error. Please try again later.';
         } else if (axiosError.response?.data?.error) {
           errorMessage = axiosError.response.data.error;
+        } else if (axiosError.response?.data?.message) {
+          errorMessage = axiosError.response.data.message;
         } else if (axiosError.message) {
           errorMessage = axiosError.message;
         }
       }
-      
+
       console.error('📋 Error details:', errorMessage);
       setError(errorMessage);
-    } finally {
       setIsSubmitting(false);
     }
   };
@@ -450,7 +458,7 @@ export default function PracticeSetup() {
                             Select Subject
                           </label>
                         </div>
-                        
+
                         {subjects.length === 0 ? (
                           <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-xl text-yellow-800">
                             <p className="text-sm">No subjects available for {userCategory}. Loading...</p>

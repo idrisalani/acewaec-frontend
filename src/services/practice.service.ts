@@ -49,6 +49,7 @@ export interface SessionData {
 }
 
 export interface SessionWithQuestions {
+  id:string;
   session: SessionData;
   sessionId?: string;
   questions: Question[];
