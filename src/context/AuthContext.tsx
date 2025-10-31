@@ -1,50 +1,45 @@
 // frontend/src/context/AuthContext.tsx
-// ✅ RECOMMENDED - Merged Best Practices from Both Implementations
+// ✅ FINAL FIX - All TypeScript errors resolved
+// ✅ Only exports AuthProvider component
+// ✅ Context and types moved to separate auth.context.ts file
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import {
+  useState,
+  useEffect,
+  type ReactNode,
+  type JSX,
+} from 'react';
 import type { User, LoginData } from '../types/auth.types';
 import { authService } from '../services/auth.service';
 import apiClient, { setAccessToken } from '../services/api';
+import { AuthContext, type AuthContextType } from './auth.context';
 
 // ==========================================
-// TYPE DEFINITIONS
-// ==========================================
-
-export enum UserRole {
-  STUDENT = 'STUDENT',
-  TEACHER = 'TEACHER',
-  TUTOR = 'TUTOR',
-  SCHOOL_ADMIN = 'SCHOOL_ADMIN',
-  SUPER_ADMIN = 'SUPER_ADMIN',
-}
-
-export interface AuthContextType {
-  user: User | null;
-  isLoading: boolean;
-  isAuthenticated: boolean;
-  isAdmin: boolean;
-  login: (data: LoginData) => Promise<void>;
-  register: (data: FormData) => Promise<void>;
-  logout: () => Promise<void>;
-  refreshToken: () => Promise<void>;
-  updateUser: (user: Partial<User>) => void;
-}
-
-// ==========================================
-// CONTEXT CREATION
-// ==========================================
-
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-// ==========================================
-// AUTH PROVIDER COMPONENT
+// AUTH PROVIDER COMPONENT ONLY
 // ==========================================
 
 interface AuthProviderProps {
   children: ReactNode;
 }
 
-export function AuthProvider({ children }: AuthProviderProps) {
+/**
+ * AuthProvider - Wraps the application to provide authentication context
+ * 
+ * Features:
+ * - Dual-fetch strategy for optimal UX (cached + fresh data)
+ * - Offline support via localStorage caching
+ * - Automatic token refresh
+ * - Admin role detection
+ * - TypeScript strict mode compliant
+ * 
+ * Usage:
+ * ```
+ * <AuthProvider>
+ *   <App />
+ * </AuthProvider>
+ * ```
+ */
+export function AuthProvider({ children }: AuthProviderProps): JSX.Element {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -57,7 +52,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
    * 1. Load cached user immediately (no flicker)
    * 2. Refresh data in background
    * 3. Fallback to API if no cache
-   * 
+   *
    * Benefits:
    * - Instant page load (offline support)
    * - Fresh data via background refresh
@@ -65,7 +60,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
    * - Graceful error handling
    */
   useEffect(() => {
-    const initializeAuth = async () => {
+    const initializeAuth = async (): Promise<void> => {
       try {
         const token = localStorage.getItem('accessToken');
         const cachedUser = localStorage.getItem('user');
@@ -73,14 +68,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
         if (token && cachedUser) {
           // ✅ Path 1: Token + Cache (Most Common)
           // Immediately restore user from cache to prevent UI flicker
-          const parsedUser = JSON.parse(cachedUser);
+          const parsedUser = JSON.parse(cachedUser) as User;
           setUser(parsedUser);
           setAccessToken(token);
 
           // Refresh user data in background without blocking UI
           try {
             const response = await apiClient.get('/auth/me');
-            const freshUser = response.data.data;
+            const freshUser = response.data.data as User;
             setUser(freshUser);
             localStorage.setItem('user', JSON.stringify(freshUser));
           } catch (error) {
@@ -95,7 +90,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           // Token exists but no cached user, fetch from API
           try {
             const response = await apiClient.get('/auth/me');
-            const fetchedUser = response.data.data;
+            const fetchedUser = response.data.data as User;
             setUser(fetchedUser);
             localStorage.setItem('user', JSON.stringify(fetchedUser));
             setAccessToken(token);
@@ -131,7 +126,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   /**
    * Login user with email and password
    */
-  const login = async (data: LoginData) => {
+  const login = async (data: LoginData): Promise<void> => {
     try {
       setIsLoading(true);
       const result = await authService.login(data);
@@ -158,7 +153,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
    * Register new user
    * Supports FormData for file uploads (profile picture)
    */
-  const register = async (data: FormData) => {
+  const register = async (data: FormData): Promise<void> => {
     try {
       setIsLoading(true);
       const result = await authService.register(data);
@@ -185,7 +180,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
    * Logout user
    * Clears all authentication data
    */
-  const logout = async () => {
+  const logout = async (): Promise<void> => {
     try {
       await authService.logout();
       console.log('✅ Logout API call successful');
@@ -206,7 +201,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
    * Refresh authentication token
    * Called when token is about to expire
    */
-  const refreshToken = async () => {
+  const refreshToken = async (): Promise<void> => {
     try {
       setIsLoading(true);
       const response = await authService.refreshToken();
@@ -238,7 +233,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
    * Update user information locally
    * Useful for profile updates, avatar changes, etc.
    */
-  const updateUser = (updatedUser: Partial<User>) => {
+  const updateUser = (updatedUser: Partial<User>): void => {
     if (user) {
       const newUser = {
         ...user,
@@ -255,8 +250,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   // ==========================================
 
   const isAuthenticated = !!user;
-  const isAdmin =
-    user?.role === UserRole.SUPER_ADMIN || user?.role === UserRole.SCHOOL_ADMIN;
+  const isAdmin = user?.role === 'SUPER_ADMIN' || user?.role === 'SCHOOL_ADMIN';
 
   // ==========================================
   // CONTEXT VALUE
@@ -281,60 +275,5 @@ export function AuthProvider({ children }: AuthProviderProps) {
   );
 }
 
-// ==========================================
-// HOOKS
-// ==========================================
-
-/**
- * Hook to use Auth Context
- * Must be called within AuthProvider
- * 
- * Usage:
- * const { user, login, logout, isLoading } = useAuth();
- */
-export function useAuth() {
-  const context = useContext(AuthContext);
-
-  if (context === undefined) {
-    throw new Error('useAuth must be used within AuthProvider');
-  }
-
-  return context;
-}
-
-/**
- * Hook to check if user has specific role(s)
- * Provides role-based conditional rendering
- * 
- * Usage:
- * const { isAdmin, hasRole } = useAuthRole();
- * if (isAdmin) { ... }
- * if (hasRole(['TEACHER', 'TUTOR'])) { ... }
- */
-export function useAuthRole() {
-  const { user } = useAuth();
-
-  return {
-    // Individual role checks
-    isStudent: user?.role === UserRole.STUDENT,
-    isTeacher: user?.role === UserRole.TEACHER,
-    isTutor: user?.role === UserRole.TUTOR,
-    isSchoolAdmin: user?.role === UserRole.SCHOOL_ADMIN,
-    isSuperAdmin: user?.role === UserRole.SUPER_ADMIN,
-    
-    // Combined checks
-    isAdmin: 
-      user?.role === UserRole.SUPER_ADMIN || 
-      user?.role === UserRole.SCHOOL_ADMIN,
-    
-    // Flexible role checking
-    hasRole: (role: UserRole | UserRole[]) => {
-      if (Array.isArray(role)) {
-        // Check if user has any of the roles
-        return user ? role.includes(user.role) : false;
-      }
-      // Check if user has specific role
-      return user?.role === role;
-    },
-  };
-}
+// Export display name for debugging
+AuthProvider.displayName = 'AuthProvider';
