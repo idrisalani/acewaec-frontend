@@ -1,24 +1,30 @@
-// frontend/src/context/hooks/useAuth.ts
-// ✅ useAuth hook - separate file
+// frontend/src/hooks/useAuth.ts
+// ✅ Custom hook for accessing AuthContext with proper error handling
 
 import { useContext } from 'react';
-import { AuthContext, type AuthContextType } from '../auth.context';
+import { AuthContext } from '../';
 
 /**
- * Hook to use Auth Context
- * Must be called within AuthProvider
- *
+ * useAuth - Custom hook for accessing authentication context
+ * 
  * Usage:
- * const { user, login, logout, isLoading } = useAuth();
- *
- * @throws Error if used outside of AuthProvider
+ * ```
+ * const { user, login, logout, isAuthenticated } = useAuth();
+ * ```
+ * 
+ * Throws error if used outside of AuthProvider
  */
-export function useAuth(): AuthContextType {
+export function useAuth() {
   const context = useContext(AuthContext);
 
-  if (context === undefined) {
-    throw new Error('useAuth must be used within AuthProvider');
+  if (!context) {
+    throw new Error(
+      '❌ useAuth must be used within an AuthProvider. ' +
+      'Wrap your component tree with <AuthProvider> in App.tsx'
+    );
   }
 
   return context;
 }
+
+export default useAuth;
