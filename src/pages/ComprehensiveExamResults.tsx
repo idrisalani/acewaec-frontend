@@ -13,7 +13,7 @@ import {
 import { comprehensiveExamService } from '../services/comprehensiveExam.service';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { PDFService } from '../services/pdf.service';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context';
 
 interface QuestionResult {
   id: string;

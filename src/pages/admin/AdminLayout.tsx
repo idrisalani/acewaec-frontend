@@ -10,7 +10,7 @@ import {
   X,
   ChevronRight
 } from 'lucide-react';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../context';
 
 export default function AdminLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false); // Changed: mobile default is closed
