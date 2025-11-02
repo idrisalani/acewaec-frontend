@@ -2,7 +2,7 @@
 // ✅ Custom hook for accessing AuthContext with proper error handling
 
 import { useContext } from 'react';
-import { AuthContext } from '../';
+import { AuthContext } from '../auth.context';
 
 /**
  * useAuth - Custom hook for accessing authentication context
