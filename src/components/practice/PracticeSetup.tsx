@@ -239,8 +239,23 @@ export default function PracticeSetup() {
       try {
         console.log(`📖 Loading topics for subject ID: ${subjectId}`);
         const topicsData = await practiceService.getTopics(subjectId);
-        console.log(`✅ Loaded ${topicsData.length} topics for subject`);
-        setTopics(topicsData);
+
+        // ✅ NEW: Deduplicate topics in case backend returns duplicates
+        const uniqueTopics = Array.from(
+          new Map(topicsData.map(t => [t.id, t])).values()
+        );
+
+        // Log deduplication result if there were duplicates
+        if (uniqueTopics.length < topicsData.length) {
+          console.warn(
+            `⚠️ Backend returned duplicate topics! ` +
+            `Removed ${topicsData.length - uniqueTopics.length} duplicates. ` +
+            `${topicsData.length} → ${uniqueTopics.length}`
+          );
+        }
+
+        console.log(`✅ Loaded ${uniqueTopics.length} unique topics for subject`);
+        setTopics(uniqueTopics);
       } catch (err) {
         console.error('❌ Failed to load topics:', err);
         setError('Failed to load topics');
@@ -469,11 +484,10 @@ export default function PracticeSetup() {
                               <button
                                 key={subject.id}
                                 type="button"
-                                className={`p-4 border-2 rounded-xl transition-all text-left ${
-                                  config.subjectIds.includes(subject.id)
+                                className={`p-4 border-2 rounded-xl transition-all text-left ${config.subjectIds.includes(subject.id)
                                     ? 'border-indigo-600 bg-indigo-50'
                                     : 'border-gray-200 hover:border-indigo-300'
-                                }`}
+                                  }`}
                                 onClick={() => toggleSubject(subject.id)}
                               >
                                 <div className="flex items-center justify-between mb-1">
@@ -544,11 +558,10 @@ export default function PracticeSetup() {
                                   hasDuration: !prev.hasDuration
                                 }))
                               }
-                              className={`px-4 py-2 rounded-lg font-medium transition ${
-                                config.hasDuration
+                              className={`px-4 py-2 rounded-lg font-medium transition ${config.hasDuration
                                   ? 'bg-indigo-100 text-indigo-700'
                                   : 'bg-gray-100 text-gray-700'
-                              }`}
+                                }`}
                             >
                               {config.hasDuration ? '⏱️' : '∞'}
                             </button>
@@ -573,11 +586,10 @@ export default function PracticeSetup() {
                               <button
                                 key={topic.id}
                                 type="button"
-                                className={`p-3 border-2 rounded-xl transition-all text-left ${
-                                  config.topicIds.includes(topic.id)
+                                className={`p-3 border-2 rounded-xl transition-all text-left ${config.topicIds.includes(topic.id)
                                     ? 'border-indigo-600 bg-indigo-50'
                                     : 'border-gray-200 hover:border-indigo-300'
-                                }`}
+                                  }`}
                                 onClick={() => toggleTopic(topic.id)}
                               >
                                 <div className="flex items-center justify-between mb-1">
@@ -657,11 +669,10 @@ export default function PracticeSetup() {
                           <button
                             key={category}
                             type="button"
-                            className={`p-4 border-2 rounded-xl transition-all text-center font-semibold ${
-                              config.category === category
+                            className={`p-4 border-2 rounded-xl transition-all text-center font-semibold ${config.category === category
                                 ? 'border-indigo-600 bg-indigo-50 ring-2 ring-indigo-200'
                                 : 'border-gray-200 hover:border-indigo-300 hover:bg-gray-50'
-                            }`}
+                              }`}
                             onClick={() =>
                               setConfig(prev => ({ ...prev, category }))
                             }
