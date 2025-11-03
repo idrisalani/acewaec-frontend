@@ -475,7 +475,7 @@ export default function PracticeSetup() {
       console.log('🔀 Navigating to practice interface...');
 
       setTimeout(() => {
-        navigate(`/practice/interface/${sessionId}`, { replace: true });
+        navigate(`/practice/interface/${sessionId}`, { replace: false });
       }, 500);
 
     } catch (err) {
