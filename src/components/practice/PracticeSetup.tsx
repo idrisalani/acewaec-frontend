@@ -1,6 +1,6 @@
 // frontend/src/pages/practice/PracticeSetup.tsx
-// ✅ FINAL RECONCILED VERSION - Production Ready
-// Combines best practices from both versions with all fixes applied
+// ✅ FINAL FINE-TUNED VERSION - Production Ready
+// Combines best practices from both versions with ALL FIXES applied
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -48,27 +48,47 @@ interface PracticeConfig {
 
 interface TopicCardProps {
   topic: Topic;
-  onToggle?: (topicId: string) => void;  // ✅ Add this
+  isSelected?: boolean;
+  onToggle?: (topicId: string) => void;
 }
 
-export const TopicCard = ({ topic, onToggle }: TopicCardProps) => {
+export const TopicCard = ({ topic, isSelected, onToggle }: TopicCardProps) => {
   return (
-    <div onClick={() => onToggle?.(topic.id)}>  // ✅ Use here
-      {topic.name}
-    </div>
+    <button
+      type="button"
+      onClick={() => onToggle?.(topic.id)}
+      className={`p-4 border-2 rounded-xl transition-all text-left ${
+        isSelected
+          ? 'border-indigo-600 bg-indigo-50'
+          : 'border-gray-200 hover:border-indigo-300'
+      }`}
+    >
+      <div className="flex items-center justify-between mb-1">
+        <div className="font-semibold text-gray-900">{topic.name}</div>
+        {isSelected && <CheckCircle className="text-indigo-600" size={20} />}
+      </div>
+      <div className="text-sm text-gray-600">
+        {topic._count?.questions || 0} questions
+      </div>
+    </button>
   );
 };
 
 /**
- * PracticeSetup Component - FINAL RECONCILED VERSION
+ * PracticeSetup Component - FINAL FINE-TUNED VERSION
  * 
- * ✅ ALL ISSUES FIXED:
- * 1. ✅ Topics loading duplicate - Removed redundant useEffect
- * 2. ✅ Navigation to practice interface - Fixed error handling and routing
- * 3. ✅ Subject duplication - Cleaned up rendering logic
- * 4. ✅ Dependency arrays - All properly optimized
- * 5. ✅ Error handling - Comprehensive HTTP error messages
- * 6. ✅ Loading states - Proper async handling
+ * ✅ ALL CRITICAL ISSUES FIXED:
+ * 1. ✅ Subject ID [object Object] - NOW FIXED ✓
+ *    - selectedSubject is used directly (it's the object with .id property)
+ *    - Extract .id when making API calls
+ *    - No more [object Object] in URLs
+ * 
+ * 2. ✅ Topics loading duplicate - Removed redundant useEffect
+ * 3. ✅ Navigation to practice interface - Fixed error handling and routing
+ * 4. ✅ Subject duplication - Cleaned up rendering logic
+ * 5. ✅ Dependency arrays - All properly optimized
+ * 6. ✅ Error handling - Comprehensive HTTP error messages
+ * 7. ✅ Loading states - Proper async handling
  * 
  * KEY IMPROVEMENTS:
  * - Single source of truth for subject data
@@ -78,6 +98,7 @@ export const TopicCard = ({ topic, onToggle }: TopicCardProps) => {
  * - Direct localStorage handling (no external dependencies)
  * - Robust session ID extraction (handles 3 response formats)
  * - Better type safety throughout
+ * - CRITICAL: Proper subject ID extraction from object
  */
 export default function PracticeSetup() {
   const navigate = useNavigate();
@@ -126,9 +147,13 @@ export default function PracticeSetup() {
 
   /**
    * ✅ MEMOIZED: Get selected subject for display
+   * ✅ CRITICAL: This returns the OBJECT, not just the ID
+   * When using this, remember to extract .id when needed
    */
   const selectedSubject = useMemo(() => {
-    return subjects.find(s => config.subjectIds.includes(s.id));
+    const subject = subjects.find(s => config.subjectIds.includes(s.id));
+    console.log('📌 Selected subject (object):', subject);
+    return subject;
   }, [config.subjectIds, subjects]);
 
   // ==================== Effects ====================
@@ -236,41 +261,63 @@ export default function PracticeSetup() {
 
   /**
    * ✅ EFFECT 4: Load topics for selected subject
-   * IMPORTANT: This should only run ONCE per subject selection
+   * ✅ CRITICAL FIX: Properly handles subject ID extraction
+   * 
+   * IMPORTANT: selectedSubject is the OBJECT with { id, name, ... }
+   * We MUST extract .id when making API calls
+   * 
    * DO NOT add other dependencies - prevents duplicate loading
    */
-
-  // ✅ CORRECT - Deduplicates and manages state properly
   useEffect(() => {
     const loadTopicsForSubject = async () => {
       if (!selectedSubject) {
+        console.log('📚 No subject selected, clearing topics');
         setTopics([]);
         return;
       }
 
       try {
-        console.log(`📚 Loading topics for subject: ${selectedSubject}`);
+        // ✅ CRITICAL FIX: Extract ID correctly from subject object
+        // selectedSubject is the OBJECT: { id: "...", name: "...", ... }
+        // We need to extract just the .id property
+        const subjectId = selectedSubject.id;
 
-        // Fetch with proper typing
-        const response = await apiClient.get<{ data: Topic[] }>(
-          `/practice/subjects/${selectedSubject}/topics`
+        if (!subjectId || typeof subjectId !== 'string') {
+          console.error('❌ Invalid subject ID:', { 
+            selectedSubject, 
+            subjectId, 
+            type: typeof subjectId 
+          });
+          setTopics([]);
+          return;
+        }
+
+        console.log(`📚 Loading topics for subject ID: ${subjectId}`);
+        console.log(`   Subject name: ${selectedSubject.name}`);
+
+        // ✅ CRITICAL: Use the extracted string ID in the URL
+        const response = await apiClient.get(
+          `/practice/subjects/${subjectId}/topics`
         );
 
-        // Use const instead of let
         const topicsData: Topic[] = response.data?.data || [];
 
-        // Fix type with proper typing
+        console.log(`📊 Received ${topicsData.length} topics from backend`);
+
+        // Deduplication
         const uniqueTopics = Array.from(
           new Map(topicsData.map((t: Topic) => [t.id, t])).values()
         );
 
-        console.log(`✅ Loaded ${uniqueTopics.length} unique topics`);
+        console.log(`✅ Loaded ${uniqueTopics.length} unique topics after deduplication`);
 
-        // Type-safe setTopics
         setTopics(Array.from(uniqueTopics) as Topic[]);
 
       } catch (error) {
         console.error('❌ Error loading topics:', error);
+        if (error instanceof Error) {
+          console.error('Error message:', error.message);
+        }
         setTopics([]);
       }
     };
@@ -280,7 +327,7 @@ export default function PracticeSetup() {
     return () => {
       setTopics([]);
     };
-  }, [selectedSubject]);
+  }, [selectedSubject]); // ✅ Correct dependency
 
   /**
    * ✅ EFFECT 5: Adjust question count when available questions change
@@ -504,7 +551,10 @@ export default function PracticeSetup() {
                                   ? 'border-indigo-600 bg-indigo-50'
                                   : 'border-gray-200 hover:border-indigo-300'
                                   }`}
-                                onClick={() => toggleSubject(subject.id)}
+                                onClick={() => {
+                                  console.log('✅ Subject selected:', subject.id);
+                                  toggleSubject(subject.id);
+                                }}
                               >
                                 <div className="flex items-center justify-between mb-1">
                                   <div className="font-semibold text-gray-900">{subject.name}</div>
@@ -610,6 +660,7 @@ export default function PracticeSetup() {
                                 <TopicCard
                                   key={topic.id}
                                   topic={topic}
+                                  isSelected={config.topicIds.includes(topic.id)}
                                   onToggle={() => toggleTopic(topic.id)}
                                 />
                               ));
