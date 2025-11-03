@@ -130,8 +130,8 @@ const TopicCard = ({ topic, isSelected, onToggle }: TopicCardProps) => {
       type="button"
       onClick={() => onToggle?.(topic.id)}
       className={`p-4 border-2 rounded-xl transition-all text-left ${isSelected
-          ? 'border-indigo-600 bg-indigo-50'
-          : 'border-gray-200 hover:border-indigo-300'
+        ? 'border-indigo-600 bg-indigo-50'
+        : 'border-gray-200 hover:border-indigo-300'
         }`}
     >
       <div className="flex items-center justify-between mb-1">
@@ -443,7 +443,7 @@ export default function PracticeSetup() {
         questionCount: config.questionCount,
         duration: config.hasDuration ? config.duration : null,
         difficulty: config.difficulty || null,
-        type: config.hasDuration ? 'TIMED' : 'UNTIMED',
+        type: config.hasDuration ? 'TIMED_TEST' : 'PRACTICE'  // ✅ Updated!
       };
 
       console.log('📤 Sending payload to backend:', JSON.stringify(sessionPayload, null, 2));
@@ -577,8 +577,8 @@ export default function PracticeSetup() {
                                 key={subject.id}
                                 type="button"
                                 className={`p-4 border-2 rounded-xl transition-all text-left ${config.subjectIds.includes(subject.id)
-                                    ? 'border-indigo-600 bg-indigo-50'
-                                    : 'border-gray-200 hover:border-indigo-300'
+                                  ? 'border-indigo-600 bg-indigo-50'
+                                  : 'border-gray-200 hover:border-indigo-300'
                                   }`}
                                 onClick={() => {
                                   console.log('✅ Subject selected:', subject.id, subject.name);
@@ -653,8 +653,8 @@ export default function PracticeSetup() {
                                 }))
                               }
                               className={`px-4 py-2 rounded-lg font-medium transition ${config.hasDuration
-                                  ? 'bg-indigo-100 text-indigo-700'
-                                  : 'bg-gray-100 text-gray-700'
+                                ? 'bg-indigo-100 text-indigo-700'
+                                : 'bg-gray-100 text-gray-700'
                                 }`}
                             >
                               {config.hasDuration ? '⏱️' : '∞'}
@@ -765,8 +765,8 @@ export default function PracticeSetup() {
                             key={category}
                             type="button"
                             className={`p-4 border-2 rounded-xl transition-all text-center font-semibold ${config.category === category
-                                ? 'border-indigo-600 bg-indigo-50 ring-2 ring-indigo-200'
-                                : 'border-gray-200 hover:border-indigo-300 hover:bg-gray-50'
+                              ? 'border-indigo-600 bg-indigo-50 ring-2 ring-indigo-200'
+                              : 'border-gray-200 hover:border-indigo-300 hover:bg-gray-50'
                               }`}
                             onClick={() =>
                               setConfig(prev => ({ ...prev, category }))
