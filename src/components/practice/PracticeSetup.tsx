@@ -18,6 +18,7 @@ import {
   Loader2
 } from 'lucide-react';
 import practiceService from '../../services/practice.service';
+import apiClient from '../../services/api';
 
 interface Subject {
   id: string;
@@ -32,6 +33,7 @@ interface Topic {
   id: string;
   name: string;
   _count?: { questions: number };
+  difficulty: string;
 }
 
 interface PracticeConfig {
@@ -43,6 +45,19 @@ interface PracticeConfig {
   hasDuration: boolean;
   category?: string;
 }
+
+interface TopicCardProps {
+  topic: Topic;
+  onToggle?: (topicId: string) => void;  // ✅ Add this
+}
+
+export const TopicCard = ({ topic, onToggle }: TopicCardProps) => {
+  return (
+    <div onClick={() => onToggle?.(topic.id)}>  // ✅ Use here
+      {topic.name}
+    </div>
+  );
+};
 
 /**
  * PracticeSetup Component - FINAL RECONCILED VERSION
@@ -224,47 +239,48 @@ export default function PracticeSetup() {
    * IMPORTANT: This should only run ONCE per subject selection
    * DO NOT add other dependencies - prevents duplicate loading
    */
+
+  // ✅ CORRECT - Deduplicates and manages state properly
   useEffect(() => {
     const loadTopicsForSubject = async () => {
-      // Reset topics if no subject selected
-      if (!config.subjectIds.length) {
-        console.log('📖 No subject selected, clearing topics');
+      if (!selectedSubject) {
         setTopics([]);
         return;
       }
 
-      // Get the first (and only) selected subject
-      const subjectId = config.subjectIds[0];
-
       try {
-        console.log(`📖 Loading topics for subject ID: ${subjectId}`);
-        const topicsData = await practiceService.getTopics(subjectId);
+        console.log(`📚 Loading topics for subject: ${selectedSubject}`);
 
-        // ✅ NEW: Deduplicate topics in case backend returns duplicates
-        const uniqueTopics = Array.from(
-          new Map(topicsData.map(t => [t.id, t])).values()
+        // Fetch with proper typing
+        const response = await apiClient.get<{ data: Topic[] }>(
+          `/practice/subjects/${selectedSubject}/topics`
         );
 
-        // Log deduplication result if there were duplicates
-        if (uniqueTopics.length < topicsData.length) {
-          console.warn(
-            `⚠️ Backend returned duplicate topics! ` +
-            `Removed ${topicsData.length - uniqueTopics.length} duplicates. ` +
-            `${topicsData.length} → ${uniqueTopics.length}`
-          );
-        }
+        // Use const instead of let
+        const topicsData: Topic[] = response.data?.data || [];
 
-        console.log(`✅ Loaded ${uniqueTopics.length} unique topics for subject`);
-        setTopics(uniqueTopics);
-      } catch (err) {
-        console.error('❌ Failed to load topics:', err);
-        setError('Failed to load topics');
+        // Fix type with proper typing
+        const uniqueTopics = Array.from(
+          new Map(topicsData.map((t: Topic) => [t.id, t])).values()
+        );
+
+        console.log(`✅ Loaded ${uniqueTopics.length} unique topics`);
+
+        // Type-safe setTopics
+        setTopics(Array.from(uniqueTopics) as Topic[]);
+
+      } catch (error) {
+        console.error('❌ Error loading topics:', error);
         setTopics([]);
       }
     };
 
     loadTopicsForSubject();
-  }, [config.subjectIds]); // ✅ FIXED: Only depends on subjectIds - prevents duplication
+
+    return () => {
+      setTopics([]);
+    };
+  }, [selectedSubject]);
 
   /**
    * ✅ EFFECT 5: Adjust question count when available questions change
@@ -485,8 +501,8 @@ export default function PracticeSetup() {
                                 key={subject.id}
                                 type="button"
                                 className={`p-4 border-2 rounded-xl transition-all text-left ${config.subjectIds.includes(subject.id)
-                                    ? 'border-indigo-600 bg-indigo-50'
-                                    : 'border-gray-200 hover:border-indigo-300'
+                                  ? 'border-indigo-600 bg-indigo-50'
+                                  : 'border-gray-200 hover:border-indigo-300'
                                   }`}
                                 onClick={() => toggleSubject(subject.id)}
                               >
@@ -559,8 +575,8 @@ export default function PracticeSetup() {
                                 }))
                               }
                               className={`px-4 py-2 rounded-lg font-medium transition ${config.hasDuration
-                                  ? 'bg-indigo-100 text-indigo-700'
-                                  : 'bg-gray-100 text-gray-700'
+                                ? 'bg-indigo-100 text-indigo-700'
+                                : 'bg-gray-100 text-gray-700'
                                 }`}
                             >
                               {config.hasDuration ? '⏱️' : '∞'}
@@ -582,27 +598,22 @@ export default function PracticeSetup() {
                             </label>
                           </div>
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            {topics.map(topic => (
-                              <button
-                                key={topic.id}
-                                type="button"
-                                className={`p-3 border-2 rounded-xl transition-all text-left ${config.topicIds.includes(topic.id)
-                                    ? 'border-indigo-600 bg-indigo-50'
-                                    : 'border-gray-200 hover:border-indigo-300'
-                                  }`}
-                                onClick={() => toggleTopic(topic.id)}
-                              >
-                                <div className="flex items-center justify-between mb-1">
-                                  <div className="text-sm font-medium">{topic.name}</div>
-                                  {config.topicIds.includes(topic.id) && (
-                                    <CheckCircle className="text-indigo-600" size={16} />
-                                  )}
-                                </div>
-                                <div className="text-xs text-gray-500">
-                                  {topic._count?.questions || 0} questions
-                                </div>
-                              </button>
-                            ))}
+                            {(() => {
+                              // Final deduplication layer
+                              const uniqueTopics = Array.from(
+                                new Map((topics || []).map(t => [t.id, t])).values()
+                              );
+
+                              console.log(`🎨 Rendering ${uniqueTopics.length} topics`);
+
+                              return uniqueTopics.map(topic => (
+                                <TopicCard
+                                  key={topic.id}
+                                  topic={topic}
+                                  onToggle={() => toggleTopic(topic.id)}
+                                />
+                              ));
+                            })()}
                           </div>
                         </div>
                       )}
@@ -670,8 +681,8 @@ export default function PracticeSetup() {
                             key={category}
                             type="button"
                             className={`p-4 border-2 rounded-xl transition-all text-center font-semibold ${config.category === category
-                                ? 'border-indigo-600 bg-indigo-50 ring-2 ring-indigo-200'
-                                : 'border-gray-200 hover:border-indigo-300 hover:bg-gray-50'
+                              ? 'border-indigo-600 bg-indigo-50 ring-2 ring-indigo-200'
+                              : 'border-gray-200 hover:border-indigo-300 hover:bg-gray-50'
                               }`}
                             onClick={() =>
                               setConfig(prev => ({ ...prev, category }))
