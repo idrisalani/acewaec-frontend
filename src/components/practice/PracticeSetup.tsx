@@ -1,15 +1,5 @@
 // frontend/src/pages/practice/PracticeSetup.tsx
-// ✅ COMPLETE FINE-TUNED VERSION - ALL ISSUES FIXED & PRODUCTION READY
-//
-// ✅ FIXES APPLIED:
-// 1. ✅ Subject ID [object Object] - Properly extract .id from subject object
-// 2. ✅ Topic loading timeout - Increased to 60s with retry logic
-// 3. ✅ Session start errors - Better error handling and validation
-// 4. ✅ TypeScript any types - Replaced with proper type guards
-// 5. ✅ Deduplication - Multi-layer dedup at topics display
-// 6. ✅ Loading states - Show loading indicator while fetching
-// 7. ✅ Error messages - Comprehensive, user-friendly messages
-// 8. ✅ Type safety - Full TypeScript compliance, no ESLint warnings
+// ✅ COMPLETELY CORRECTED - Duplicates & Payload Fixed
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -30,7 +20,7 @@ import {
 import practiceService from '../../services/practice.service';
 import apiClient from '../../services/api';
 
-// ==================== Type Definitions ====================
+// ==================== Types ====================
 
 interface Subject {
   id: string;
@@ -68,7 +58,6 @@ interface ApiErrorResponse {
   error?: string;
   message?: string;
   code?: string;
-  details?: unknown;
 }
 
 interface SessionResponse {
@@ -81,28 +70,24 @@ interface SessionResponse {
   id?: string;
 }
 
-// ==================== Helper Functions ====================
+// ==================== Helpers ====================
 
-/**
- * ✅ Type-safe error message extraction
- * Handles axios, Error, and unknown error types
- */
 function getErrorMessage(error: unknown): string {
   if (axios.isAxiosError(error)) {
     const axiosErr = error as AxiosError<ApiErrorResponse>;
-    
+
     if (axiosErr.code === 'ECONNABORTED') {
       return 'Request timeout. The server is taking too long to respond.';
     }
-    
+
     if (axiosErr.response?.status === 504) {
       return 'Backend is overloaded. Please try again in a moment.';
     }
-    
+
     if (axiosErr.response?.status === 500) {
       return 'Backend error. Please try again later.';
     }
-    
+
     return (
       axiosErr.response?.data?.error ||
       axiosErr.response?.data?.message ||
@@ -122,9 +107,6 @@ function getErrorMessage(error: unknown): string {
   return 'An unexpected error occurred';
 }
 
-/**
- * ✅ Extract session ID from various response formats
- */
 function extractSessionId(response: SessionResponse | unknown): string | null {
   if (!response || typeof response !== 'object') {
     return null;
@@ -140,21 +122,17 @@ function extractSessionId(response: SessionResponse | unknown): string | null {
   );
 }
 
-// ==================== TopicCard Component ====================
+// ==================== TopicCard ====================
 
-/**
- * ✅ Type-safe topic card component
- */
 const TopicCard = ({ topic, isSelected, onToggle }: TopicCardProps) => {
   return (
     <button
       type="button"
       onClick={() => onToggle?.(topic.id)}
-      className={`p-4 border-2 rounded-xl transition-all text-left ${
-        isSelected
+      className={`p-4 border-2 rounded-xl transition-all text-left ${isSelected
           ? 'border-indigo-600 bg-indigo-50'
           : 'border-gray-200 hover:border-indigo-300'
-      }`}
+        }`}
     >
       <div className="flex items-center justify-between mb-1">
         <div className="font-semibold text-gray-900">{topic.name}</div>
@@ -169,24 +147,10 @@ const TopicCard = ({ topic, isSelected, onToggle }: TopicCardProps) => {
 
 // ==================== Main Component ====================
 
-/**
- * PracticeSetup Component - COMPLETE FINE-TUNED VERSION
- * 
- * ✅ ALL CRITICAL FIXES APPLIED:
- * 1. Subject ID extraction - Uses selectedSubject.id correctly
- * 2. Timeout handling - 60s timeout with auto-retry (max 3x)
- * 3. Loading states - Shows loading indicator for topics
- * 4. Type safety - No `any` types, full TypeScript compliance
- * 5. Error recovery - User-friendly error messages
- * 6. Session creation - Robust error handling and validation
- * 7. Navigation - Proper routing to practice interface
- * 8. Performance - Optimized with useMemo and useCallback
- */
 export default function PracticeSetup() {
   const navigate = useNavigate();
 
-  // ==================== State Management ====================
-
+  // State
   const [allSubjects, setAllSubjects] = useState<Subject[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [topics, setTopics] = useState<Topic[]>([]);
@@ -207,11 +171,7 @@ export default function PracticeSetup() {
     category: '',
   });
 
-  // ==================== Memoized Computations ====================
-
-  /**
-   * ✅ MEMOIZED: Calculate available questions
-   */
+  // Memoized
   const getAvailableQuestions = useCallback(() => {
     if (config.subjectIds.length === 0) return totalAvailableQuestions;
 
@@ -227,10 +187,6 @@ export default function PracticeSetup() {
       .reduce((sum: number, topic: Topic) => sum + (topic._count?.questions || 0), 0);
   }, [config.subjectIds, config.topicIds, subjects, topics, totalAvailableQuestions]);
 
-  /**
-   * ✅ MEMOIZED: Get selected subject
-   * Important: This returns the OBJECT, not just the ID
-   */
   const selectedSubject = useMemo(() => {
     const subject = subjects.find(s => config.subjectIds.includes(s.id));
     if (subject) {
@@ -239,11 +195,7 @@ export default function PracticeSetup() {
     return subject;
   }, [config.subjectIds, subjects]);
 
-  // ==================== Effects ====================
-
-  /**
-   * ✅ EFFECT 1: Load user profile (once on mount)
-   */
+  // Effects
   useEffect(() => {
     const loadUserProfile = async (): Promise<void> => {
       try {
@@ -259,7 +211,6 @@ export default function PracticeSetup() {
               ...prev,
               category: user.studentCategory
             }));
-            console.log('✅ User category:', user.studentCategory);
           }
         }
       } catch (err) {
@@ -272,9 +223,6 @@ export default function PracticeSetup() {
     loadUserProfile();
   }, []);
 
-  /**
-   * ✅ EFFECT 2: Load all subjects (once on mount)
-   */
   useEffect(() => {
     const loadAllSubjects = async (): Promise<void> => {
       try {
@@ -298,9 +246,6 @@ export default function PracticeSetup() {
     loadAllSubjects();
   }, []);
 
-  /**
-   * ✅ EFFECT 3: Handle category changes
-   */
   useEffect(() => {
     const handleCategoryChange = async (): Promise<void> => {
       if (!config.category) {
@@ -321,7 +266,6 @@ export default function PracticeSetup() {
 
         setTotalAvailableQuestions(total);
 
-        // Reset selections on category change
         setConfig(prev => ({
           ...prev,
           subjectIds: [],
@@ -339,95 +283,111 @@ export default function PracticeSetup() {
   }, [config.category, allSubjects]);
 
   /**
-   * ✅ EFFECT 4: Load topics for selected subject
-   * ✅ FIXED: Proper subject ID extraction with timeout & retry
-   * ✅ FIXED: Type-safe error handling (no `any` types)
-   * ✅ FIXED: Shows loading state while fetching
+   * ✅ CORRECTED: Fix duplicate topics + proper cleanup
    */
   useEffect(() => {
+    // ✅ Use ReturnType instead of NodeJS.Timeout
+    let isMounted = true;
+    let retryTimeoutId: ReturnType<typeof setTimeout> | null = null;
+
     const loadTopicsForSubject = async (retryCount: number = 0): Promise<void> => {
+      if (!isMounted) return;
+
       if (!selectedSubject) {
         console.log('📚 No subject selected, clearing topics');
-        setTopics([]);
-        setIsLoadingTopics(false);
+        if (isMounted) {
+          setTopics([]);
+          setIsLoadingTopics(false);
+        }
         return;
       }
 
       try {
-        setIsLoadingTopics(true);
+        if (isMounted) setIsLoadingTopics(true);
 
-        // ✅ CRITICAL FIX: Extract ID from subject object
         const subjectId = selectedSubject.id;
 
         if (!subjectId || typeof subjectId !== 'string') {
-          console.error('❌ Invalid subject ID:', { selectedSubject, subjectId });
-          setTopics([]);
-          setIsLoadingTopics(false);
+          console.error('❌ Invalid subject ID');
+          if (isMounted) {
+            setTopics([]);
+            setIsLoadingTopics(false);
+          }
           return;
         }
 
         console.log(`📚 Loading topics for subject: ${selectedSubject.name} (ID: ${subjectId})`);
 
-        // ✅ FIXED: 60 second timeout with retry
         const response = await apiClient.get(
           `/practice/subjects/${subjectId}/topics`,
-          { timeout: 60000 } // 60 seconds
+          { timeout: 60000 }
         );
 
         const topicsData: Topic[] = response.data?.data || [];
         console.log(`✅ Received ${topicsData.length} topics from backend`);
 
-        // ✅ Deduplication
-        const uniqueTopics = Array.from(
-          new Map(topicsData.map((t: Topic) => [t.id, t])).values()
-        );
+        const seenIds = new Set<string>();
+        const uniqueTopics: Topic[] = [];
+
+        for (const topic of topicsData) {
+          if (!seenIds.has(topic.id)) {
+            seenIds.add(topic.id);
+            uniqueTopics.push(topic);
+          }
+        }
 
         console.log(`✅ After dedup: ${uniqueTopics.length} unique topics`);
-        setTopics(Array.from(uniqueTopics) as Topic[]);
-        setIsLoadingTopics(false);
-        setError(null);
 
-        // ✅ FIXED: Type-safe error handling (no `any` types)
+        if (isMounted) {
+          setTopics(uniqueTopics);
+          setIsLoadingTopics(false);
+          setError(null);
+        }
+
       } catch (error) {
         console.error('❌ Error loading topics:', error);
 
-        // ✅ FIXED: Use type guards instead of `any`
         if (axios.isAxiosError(error)) {
           const axiosError = error as AxiosError<ApiErrorResponse>;
 
           if (axiosError.code === 'ECONNABORTED' && retryCount < 3) {
             console.log(`🔄 Retrying... Attempt ${retryCount + 1}/3`);
-            setIsLoadingTopics(true);
-            await new Promise(resolve => setTimeout(resolve, 2000));
-            return loadTopicsForSubject(retryCount + 1);
+
+            // ✅ FIXED: Use ReturnType<typeof setTimeout>
+            retryTimeoutId = setTimeout(() => {
+              if (isMounted) {
+                loadTopicsForSubject(retryCount + 1);
+              }
+            }, 2000);
+            return;
           }
 
           const errorMsg = getErrorMessage(error);
-          console.error('📋 Axios error:', errorMsg);
-          setError(errorMsg);
+          if (isMounted) setError(errorMsg);
         } else if (error instanceof Error) {
-          console.error('📋 Error message:', error.message);
-          setError(error.message);
+          if (isMounted) setError(error.message);
         } else {
-          setError('Failed to load topics. Please try again.');
+          if (isMounted) setError('Failed to load topics. Please try again.');
         }
 
-        setTopics([]);
-        setIsLoadingTopics(false);
+        if (isMounted) {
+          setTopics([]);
+          setIsLoadingTopics(false);
+        }
       }
     };
 
     loadTopicsForSubject();
 
     return () => {
-      setTopics([]);
-      setIsLoadingTopics(false);
+      isMounted = false;
+
+      if (retryTimeoutId) {
+        clearTimeout(retryTimeoutId);
+      }
     };
   }, [selectedSubject]);
 
-  /**
-   * ✅ EFFECT 5: Adjust question count when available changes
-   */
   useEffect(() => {
     const available = getAvailableQuestions();
     if (available > 0 && config.questionCount > available) {
@@ -435,8 +395,7 @@ export default function PracticeSetup() {
     }
   }, [config.questionCount, getAvailableQuestions]);
 
-  // ==================== Handler Functions ====================
-
+  // Handlers
   const toggleSubject = (subjectId: string): void => {
     console.log('🔄 Subject toggled:', subjectId);
     setConfig(prev => ({
@@ -459,7 +418,7 @@ export default function PracticeSetup() {
   };
 
   /**
-   * ✅ FIXED: Type-safe form submission with comprehensive error handling
+   * ✅ CORRECTED: Fix payload structure (NO double wrapping)
    */
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault();
@@ -473,39 +432,40 @@ export default function PracticeSetup() {
     setError(null);
 
     try {
-      console.log('🚀 Starting practice session with config:', config);
+      console.log('🚀 Starting practice session');
+      console.log('   Selected subjects:', config.subjectIds);
+      console.log('   Selected topics:', config.topicIds);
 
+      // ✅ FIXED: Correct payload structure - NO { config: } wrapper!
       const sessionPayload = {
         subjectIds: config.subjectIds,
-        topicIds: config.topicIds.length > 0 ? config.topicIds : undefined,
+        topicIds: config.topicIds.length > 0 ? config.topicIds : [],
         questionCount: config.questionCount,
-        duration: config.hasDuration ? config.duration : undefined,
-        difficulty: config.difficulty || undefined,
+        duration: config.hasDuration ? config.duration : null,
+        difficulty: config.difficulty || null,
         type: config.hasDuration ? 'TIMED' : 'UNTIMED',
       };
 
-      console.log('📤 Sending to backend:', sessionPayload);
+      console.log('📤 Sending payload to backend:', JSON.stringify(sessionPayload, null, 2));
 
-      // ✅ FIXED: 60 second timeout for session creation
+      // ✅ FIXED: Send payload directly!
       const response = await apiClient.post(
         '/practice/sessions',
-        { config: sessionPayload },
+        sessionPayload,  // ← CORRECT: No { config: sessionPayload }
         { timeout: 60000 }
       );
 
-      console.log('✅ Session created:', response.data);
+      console.log('✅ Backend response:', response.data);
 
-      // ✅ FIXED: Robust session ID extraction
       const sessionId = extractSessionId(response.data);
 
       if (!sessionId) {
         console.error('❌ No session ID in response:', response.data);
-        throw new Error('Failed to create session. Please try again.');
+        throw new Error('Failed to create session. No ID returned.');
       }
 
-      console.log('📍 Session ID:', sessionId);
+      console.log('✅ Session created with ID:', sessionId);
 
-      // Cache session data
       localStorage.setItem('practiceSessionData', JSON.stringify({
         sessionId,
         config,
@@ -513,16 +473,14 @@ export default function PracticeSetup() {
       }));
 
       console.log('🔀 Navigating to practice interface...');
-      
-      // Small delay for better UX
+
       setTimeout(() => {
         navigate(`/practice/interface/${sessionId}`, { replace: true });
       }, 500);
 
-      // ✅ FIXED: Type-safe error handling (no `any` types)
     } catch (err) {
       console.error('❌ Error starting session:', err);
-      
+
       const errorMessage = getErrorMessage(err);
       console.error('📋 Error details:', errorMessage);
       setError(errorMessage);
@@ -530,11 +488,9 @@ export default function PracticeSetup() {
     }
   };
 
-  // ==================== JSX Render ====================
-
+  // Render
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
-      {/* Header */}
       <header className="bg-white shadow-sm sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
@@ -554,7 +510,6 @@ export default function PracticeSetup() {
         </div>
       </header>
 
-      {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {isLoadingUserData ? (
           <div className="flex items-center justify-center min-h-96">
@@ -565,7 +520,6 @@ export default function PracticeSetup() {
           </div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Main Form */}
             <div className="lg:col-span-2">
               <div className="bg-white rounded-2xl shadow-xl p-6 sm:p-8">
                 <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-8 flex items-center gap-3">
@@ -573,7 +527,6 @@ export default function PracticeSetup() {
                   Setup Practice Session
                 </h2>
 
-                {/* Error Alert */}
                 {error && (
                   <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
                     <AlertCircle className="text-red-600 mt-0.5 flex-shrink-0" size={20} />
@@ -587,7 +540,6 @@ export default function PracticeSetup() {
                 <form onSubmit={handleSubmit} className="space-y-8">
                   {userCategory ? (
                     <>
-                      {/* STEP 1: Category */}
                       <div>
                         <div className="flex items-center gap-2 sm:gap-3 mb-4">
                           <div className="w-8 h-8 bg-indigo-600 text-white rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0">
@@ -603,7 +555,6 @@ export default function PracticeSetup() {
                         </div>
                       </div>
 
-                      {/* STEP 2: Select Subject */}
                       <div>
                         <div className="flex items-center gap-2 sm:gap-3 mb-4">
                           <div className="w-8 h-8 bg-indigo-600 text-white rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0">
@@ -625,11 +576,10 @@ export default function PracticeSetup() {
                               <button
                                 key={subject.id}
                                 type="button"
-                                className={`p-4 border-2 rounded-xl transition-all text-left ${
-                                  config.subjectIds.includes(subject.id)
+                                className={`p-4 border-2 rounded-xl transition-all text-left ${config.subjectIds.includes(subject.id)
                                     ? 'border-indigo-600 bg-indigo-50'
                                     : 'border-gray-200 hover:border-indigo-300'
-                                }`}
+                                  }`}
                                 onClick={() => {
                                   console.log('✅ Subject selected:', subject.id, subject.name);
                                   toggleSubject(subject.id);
@@ -650,7 +600,6 @@ export default function PracticeSetup() {
                         )}
                       </div>
 
-                      {/* STEP 3: Question Count & Duration */}
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                         <div>
                           <div className="flex items-center gap-2 mb-2">
@@ -703,11 +652,10 @@ export default function PracticeSetup() {
                                   hasDuration: !prev.hasDuration
                                 }))
                               }
-                              className={`px-4 py-2 rounded-lg font-medium transition ${
-                                config.hasDuration
+                              className={`px-4 py-2 rounded-lg font-medium transition ${config.hasDuration
                                   ? 'bg-indigo-100 text-indigo-700'
                                   : 'bg-gray-100 text-gray-700'
-                              }`}
+                                }`}
                             >
                               {config.hasDuration ? '⏱️' : '∞'}
                             </button>
@@ -715,7 +663,6 @@ export default function PracticeSetup() {
                         </div>
                       </div>
 
-                      {/* STEP 4: Topics - WITH LOADING STATE */}
                       {isLoadingTopics && (
                         <div>
                           <div className="flex items-center gap-2 sm:gap-3 mb-4">
@@ -741,32 +688,23 @@ export default function PracticeSetup() {
                             </div>
                             <label className="flex items-center gap-2 text-base sm:text-lg font-semibold text-gray-900">
                               <TrendingUp className="text-indigo-600" size={20} />
-                              Select Topics (Optional)
+                              Select Topics (Optional) - {topics.length} available
                             </label>
                           </div>
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            {(() => {
-                              // ✅ Final deduplication at display time
-                              const uniqueTopics = Array.from(
-                                new Map((topics || []).map(t => [t.id, t])).values()
-                              );
-
-                              console.log(`🎨 Rendering ${uniqueTopics.length} topics`);
-
-                              return uniqueTopics.map(topic => (
-                                <TopicCard
-                                  key={topic.id}
-                                  topic={topic}
-                                  isSelected={config.topicIds.includes(topic.id)}
-                                  onToggle={() => toggleTopic(topic.id)}
-                                />
-                              ));
-                            })()}
+                            {/* ✅ FIXED: NO inline dedup - topics already deduped in useEffect */}
+                            {topics.map(topic => (
+                              <TopicCard
+                                key={topic.id}
+                                topic={topic}
+                                isSelected={config.topicIds.includes(topic.id)}
+                                onToggle={() => toggleTopic(topic.id)}
+                              />
+                            ))}
                           </div>
                         </div>
                       )}
 
-                      {/* STEP 5: Difficulty */}
                       <div>
                         <div className="flex items-center gap-2 sm:gap-3 mb-4">
                           <div className="w-8 h-8 bg-gray-400 text-white rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0">
@@ -791,7 +729,6 @@ export default function PracticeSetup() {
                         </select>
                       </div>
 
-                      {/* Submit Button */}
                       <button
                         type="submit"
                         disabled={isSubmitting || config.subjectIds.length === 0}
@@ -811,56 +748,51 @@ export default function PracticeSetup() {
                       </button>
                     </>
                   ) : (
-                    <>
-                      {/* Category Selection */}
-                      <div>
-                        <div className="flex items-center gap-2 sm:gap-3 mb-4">
-                          <div className="w-8 h-8 bg-indigo-600 text-white rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0">
-                            1
-                          </div>
-                          <label className="flex items-center gap-2 text-base sm:text-lg font-semibold text-gray-900">
-                            <GraduationCap className="text-indigo-600" size={20} />
-                            Select Category
-                          </label>
+                    <div>
+                      <div className="flex items-center gap-2 sm:gap-3 mb-4">
+                        <div className="w-8 h-8 bg-indigo-600 text-white rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0">
+                          1
                         </div>
-
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-8">
-                          {['SCIENCE', 'ART', 'COMMERCIAL'].map(category => (
-                            <button
-                              key={category}
-                              type="button"
-                              className={`p-4 border-2 rounded-xl transition-all text-center font-semibold ${
-                                config.category === category
-                                  ? 'border-indigo-600 bg-indigo-50 ring-2 ring-indigo-200'
-                                  : 'border-gray-200 hover:border-indigo-300 hover:bg-gray-50'
-                              }`}
-                              onClick={() =>
-                                setConfig(prev => ({ ...prev, category }))
-                              }
-                            >
-                              {category}
-                            </button>
-                          ))}
-                        </div>
-
-                        {!config.category && (
-                          <div className="flex flex-col items-center justify-center py-12 text-center">
-                            <div className="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mb-4">
-                              <ArrowRight className="text-indigo-600" size={32} />
-                            </div>
-                            <p className="text-gray-600 text-lg font-medium">
-                              Select a category above to continue
-                            </p>
-                          </div>
-                        )}
+                        <label className="flex items-center gap-2 text-base sm:text-lg font-semibold text-gray-900">
+                          <GraduationCap className="text-indigo-600" size={20} />
+                          Select Category
+                        </label>
                       </div>
-                    </>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-8">
+                        {['SCIENCE', 'ART', 'COMMERCIAL'].map(category => (
+                          <button
+                            key={category}
+                            type="button"
+                            className={`p-4 border-2 rounded-xl transition-all text-center font-semibold ${config.category === category
+                                ? 'border-indigo-600 bg-indigo-50 ring-2 ring-indigo-200'
+                                : 'border-gray-200 hover:border-indigo-300 hover:bg-gray-50'
+                              }`}
+                            onClick={() =>
+                              setConfig(prev => ({ ...prev, category }))
+                            }
+                          >
+                            {category}
+                          </button>
+                        ))}
+                      </div>
+
+                      {!config.category && (
+                        <div className="flex flex-col items-center justify-center py-12 text-center">
+                          <div className="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mb-4">
+                            <ArrowRight className="text-indigo-600" size={32} />
+                          </div>
+                          <p className="text-gray-600 text-lg font-medium">
+                            Select a category above to continue
+                          </p>
+                        </div>
+                      )}
+                    </div>
                   )}
                 </form>
               </div>
             </div>
 
-            {/* Summary Panel */}
             <div className="lg:col-span-1">
               <div className="bg-white rounded-2xl shadow-xl p-6 sticky top-24 max-h-[calc(100vh-120px)] overflow-y-auto">
                 <h3 className="text-lg font-bold text-gray-900 mb-4">Session Summary</h3>
