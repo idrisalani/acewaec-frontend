@@ -22,7 +22,7 @@ import TutorsPage from './pages/TutorsPage';
 
 // Practice Session Flow
 import PracticeSetup from './components/practice/PracticeSetup';
-import PracticeSession from './pages/PracticeSession';
+import PracticeInterface from './pages/PracticeInterface';
 import PracticeResults from './pages/PracticeResults';
 
 // Comprehensive Exam Flow
@@ -253,10 +253,10 @@ function AppRoutes() {
 
       {/* Step 2: Active Practice Session */}
       <Route
-        path="/practice/session/:sessionId"
+        path="/practice/interface/:sessionId"
         element={
           <ProtectedRoute allowedRoles={['STUDENT']}>
-            <PracticeSession />
+            <PracticeInterface />
           </ProtectedRoute>
         }
       />

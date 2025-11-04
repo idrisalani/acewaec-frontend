@@ -20,8 +20,8 @@ import {
 import practiceService, {
   type SessionData,
   type Question as PracticeQuestion,
-} from '../../services/practice.service';
-import apiClient from '../../services/api';
+} from '../services/practice.service';
+import apiClient from '../services/api';
 
 /**
  * ✅ FIXED: Properly typed interfaces for type safety
