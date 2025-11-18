@@ -21,9 +21,9 @@ import Dashboard from './pages/Dashboard';
 import TutorsPage from './pages/TutorsPage';
 
 // Practice Session Flow
-import PracticeSetup from './components/practice/PracticeSetup';
-import PracticeInterface from './pages/PracticeInterface';
-import PracticeResults from './pages/PracticeResults';
+import PracticeSetup from './pages/practice/PracticeSetup';
+import PracticeInterface from './components/practice/PracticeInterface';
+import PracticeResults from './pages/practice/PracticeResults';
 
 // Comprehensive Exam Flow
 import ComprehensiveExamSetup from './pages/ComprehensiveExamSetup';
