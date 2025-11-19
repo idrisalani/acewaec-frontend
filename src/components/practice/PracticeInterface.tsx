@@ -20,8 +20,8 @@ import {
 import practiceService, {
   type SessionData,
   type Question as PracticeQuestion,
-} from '../services/practice.service';
-import apiClient from '../services/api';
+} from '../../services/practice.service';
+import apiClient from '../../services/api';
 
 /**
  * ✅ FIXED: Properly typed interfaces for type safety
@@ -462,11 +462,10 @@ export default function PracticeInterface() {
             </div>
 
             {/* Timer */}
-            <div className={`text-center px-4 py-2 rounded-lg ${
-              timeLeft < 300
+            <div className={`text-center px-4 py-2 rounded-lg ${timeLeft < 300
                 ? 'bg-red-100 text-red-700'
                 : 'bg-indigo-100 text-indigo-700'
-            }`}>
+              }`}>
               <Clock className="inline mr-2" size={18} />
               <span className="font-bold text-lg">{formatTime(timeLeft)}</span>
             </div>
@@ -535,19 +534,17 @@ export default function PracticeInterface() {
                   <button
                     key={option.id}
                     onClick={() => handleSelectAnswer(currentQuestion.id, option.label)}
-                    className={`w-full p-4 text-left rounded-lg border-2 transition ${
-                      selectedAnswer === option.label
+                    className={`w-full p-4 text-left rounded-lg border-2 transition ${selectedAnswer === option.label
                         ? 'border-indigo-600 bg-indigo-50'
                         : 'border-gray-200 hover:border-indigo-300'
-                    }`}
+                      }`}
                   >
                     <div className="flex items-center">
                       <div
-                        className={`w-6 h-6 rounded-full border-2 mr-3 flex items-center justify-center ${
-                          selectedAnswer === option.label
+                        className={`w-6 h-6 rounded-full border-2 mr-3 flex items-center justify-center ${selectedAnswer === option.label
                             ? 'border-indigo-600 bg-indigo-600'
                             : 'border-gray-300'
-                        }`}
+                          }`}
                       >
                         {selectedAnswer === option.label && (
                           <CheckCircle className="text-white" size={16} />
@@ -585,11 +582,10 @@ export default function PracticeInterface() {
 
                 <button
                   onClick={() => handleToggleFlag(currentQuestion.id)}
-                  className={`px-4 py-2 rounded-lg transition ${
-                    isFlagged
+                  className={`px-4 py-2 rounded-lg transition ${isFlagged
                       ? 'bg-amber-100 text-amber-700'
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
+                    }`}
                 >
                   <Flag size={18} />
                 </button>
@@ -613,13 +609,26 @@ export default function PracticeInterface() {
                   <ChevronRight size={20} />
                 </button>
 
-                <button
-                  onClick={() => handleSubmit(false)}
-                  disabled={isSubmitting}
-                  className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition"
-                >
-                  {isSubmitting ? 'Submitting...' : 'Submit'}
-                </button>
+                {/* Next Button - On all questions except last */}
+                {currentIndex < questions.length - 1 && (
+                  <button
+                    onClick={() => setCurrentIndex(currentIndex + 1)}
+                    className="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition"
+                  >
+                    Next
+                  </button>
+                )}
+
+                {/* Submit Button - Only on last question */}
+                {currentIndex === questions.length - 1 && (
+                  <button
+                    onClick={() => handleSubmit(false)}
+                    disabled={isSubmitting}
+                    className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition"
+                  >
+                    {isSubmitting ? 'Submitting...' : 'Submit All Answers'}
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -636,13 +645,12 @@ export default function PracticeInterface() {
                       setCurrentIndex(idx);
                       setShowNavigator(false);
                     }}
-                    className={`aspect-square rounded-lg font-semibold text-sm transition ${
-                      idx === currentIndex
+                    className={`aspect-square rounded-lg font-semibold text-sm transition ${idx === currentIndex
                         ? 'bg-indigo-600 text-white'
                         : q.id in answers
                           ? 'bg-green-100 text-green-700'
                           : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
+                      }`}
                   >
                     {idx + 1}
                   </button>

@@ -16,8 +16,8 @@ import {
   type SessionResults as ServiceSessionResults,
   type SessionAnswer as ServiceSessionAnswer,
   type Question as ServiceQuestion,
-} from '../services/practice.service';
-import ModernQuestionReview from '../components/ModernQuestionReview';
+} from '../../services/practice.service';
+import ModernQuestionReview from '../../components/ModernQuestionReview';
 
 /**
  * Normalized question structure expected by ModernQuestionReview

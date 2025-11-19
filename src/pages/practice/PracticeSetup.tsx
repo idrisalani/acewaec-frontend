@@ -1,5 +1,6 @@
 // frontend/src/pages/practice/PracticeSetup.tsx
-// ✅ COMPLETELY CORRECTED - Duplicates & Payload Fixed
+// ✅ CRITICAL FIX: TopicCard now properly reads 'questionCount' from backend response
+// ✅ NO-EXPLICIT-ANY FIXED: All 'as any' casts removed and properly typed
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -31,10 +32,12 @@ interface Subject {
   _count?: { questions: number };
 }
 
+// ✅ FIXED: Properly type Topic with both optional properties
 interface Topic {
   id: string;
   name: string;
-  _count?: { questions: number };
+  questionCount?: number;  // Backend returns this
+  _count?: { questions: number };  // Keep for backward compatibility
   difficulty?: string;
 }
 
@@ -122,9 +125,25 @@ function extractSessionId(response: SessionResponse | unknown): string | null {
   );
 }
 
-// ==================== TopicCard ====================
+// ✅ Helper to safely get question count from topic
+function getTopicQuestionCount(topic: Topic): number {
+  // Backend returns questionCount as the primary source
+  if (topic.questionCount !== undefined) {
+    return topic.questionCount;
+  }
+  // Fallback to _count.questions for backward compatibility
+  if (topic._count?.questions !== undefined) {
+    return topic._count.questions;
+  }
+  return 0;
+}
+
+// ==================== TopicCard - FIXED ====================
 
 const TopicCard = ({ topic, isSelected, onToggle }: TopicCardProps) => {
+  // ✅ FIXED: Use helper function instead of 'as any' cast
+  const questionCount = getTopicQuestionCount(topic);
+
   return (
     <button
       type="button"
@@ -139,7 +158,7 @@ const TopicCard = ({ topic, isSelected, onToggle }: TopicCardProps) => {
         {isSelected && <CheckCircle className="text-indigo-600" size={20} />}
       </div>
       <div className="text-sm text-gray-600">
-        {topic._count?.questions || 0} questions
+        {questionCount} questions
       </div>
     </button>
   );
@@ -171,6 +190,17 @@ export default function PracticeSetup() {
     category: '',
   });
 
+  // ✅ Helper to safely get subject question count
+  const getSubjectQuestionCount = useCallback((subject: Subject): number => {
+    if (subject.questionCount !== undefined) {
+      return subject.questionCount;
+    }
+    if (subject._count?.questions !== undefined) {
+      return subject._count.questions;
+    }
+    return 0;
+  }, []);
+
   // Memoized
   const getAvailableQuestions = useCallback(() => {
     if (config.subjectIds.length === 0) return totalAvailableQuestions;
@@ -179,13 +209,16 @@ export default function PracticeSetup() {
     if (!selectedSubject) return 0;
 
     if (config.topicIds.length === 0) {
-      return selectedSubject.questionCount || selectedSubject._count?.questions || 0;
+      return getSubjectQuestionCount(selectedSubject);
     }
 
     return topics
       .filter(t => config.topicIds.includes(t.id))
-      .reduce((sum: number, topic: Topic) => sum + (topic._count?.questions || 0), 0);
-  }, [config.subjectIds, config.topicIds, subjects, topics, totalAvailableQuestions]);
+      .reduce((sum: number, topic: Topic) => {
+        // ✅ FIXED: Use helper function instead of 'as any' cast
+        return sum + getTopicQuestionCount(topic);
+      }, 0);
+  }, [config.subjectIds, config.topicIds, subjects, topics, totalAvailableQuestions, getSubjectQuestionCount]);
 
   const selectedSubject = useMemo(() => {
     const subject = subjects.find(s => config.subjectIds.includes(s.id));
@@ -230,9 +263,10 @@ export default function PracticeSetup() {
         const data = await practiceService.getSubjects();
         setAllSubjects(data);
 
-        const total = data.reduce((sum: number, subject: Subject) =>
-          sum + (subject.questionCount || subject._count?.questions || 0), 0
-        );
+        const total = data.reduce((sum: number, subject: Subject) => {
+          const count = subject.questionCount ?? subject._count?.questions ?? 0;
+          return sum + count;
+        }, 0);
 
         console.log(`✅ Loaded ${data.length} subjects with ${total} total questions`);
         setTotalAvailableQuestions(total);
@@ -260,9 +294,10 @@ export default function PracticeSetup() {
         console.log(`✅ Loaded ${data.length} subjects for ${config.category}`);
         setSubjects(data);
 
-        const total = data.reduce((sum: number, subject: Subject) =>
-          sum + (subject.questionCount || subject._count?.questions || 0), 0
-        );
+        const total = data.reduce((sum: number, subject: Subject) => {
+          const count = subject.questionCount ?? subject._count?.questions ?? 0;
+          return sum + count;
+        }, 0);
 
         setTotalAvailableQuestions(total);
 
@@ -283,10 +318,9 @@ export default function PracticeSetup() {
   }, [config.category, allSubjects]);
 
   /**
-   * ✅ CORRECTED: Fix duplicate topics + proper cleanup
+   * ✅ Load topics for selected subject with proper cleanup
    */
   useEffect(() => {
-    // ✅ Use ReturnType instead of NodeJS.Timeout
     let isMounted = true;
     let retryTimeoutId: ReturnType<typeof setTimeout> | null = null;
 
@@ -318,13 +352,23 @@ export default function PracticeSetup() {
 
         console.log(`📚 Loading topics for subject: ${selectedSubject.name} (ID: ${subjectId})`);
 
-        const response = await apiClient.get(
+        const response = await apiClient.get<{ data: Topic[] }>(
           `/practice/subjects/${subjectId}/topics`,
           { timeout: 60000 }
         );
 
         const topicsData: Topic[] = response.data?.data || [];
         console.log(`✅ Received ${topicsData.length} topics from backend`);
+
+        // ✅ Log the response structure to verify
+        if (topicsData.length > 0) {
+          console.log('📊 Sample topic structure:', {
+            id: topicsData[0].id,
+            name: topicsData[0].name,
+            questionCount: topicsData[0].questionCount,
+            _count: topicsData[0]._count
+          });
+        }
 
         const seenIds = new Set<string>();
         const uniqueTopics: Topic[] = [];
@@ -353,7 +397,6 @@ export default function PracticeSetup() {
           if (axiosError.code === 'ECONNABORTED' && retryCount < 3) {
             console.log(`🔄 Retrying... Attempt ${retryCount + 1}/3`);
 
-            // ✅ FIXED: Use ReturnType<typeof setTimeout>
             retryTimeoutId = setTimeout(() => {
               if (isMounted) {
                 loadTopicsForSubject(retryCount + 1);
@@ -418,7 +461,7 @@ export default function PracticeSetup() {
   };
 
   /**
-   * ✅ CORRECTED: Fix payload structure (NO double wrapping)
+   * ✅ Handle session submission with proper validation
    */
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault();
@@ -443,15 +486,14 @@ export default function PracticeSetup() {
         questionCount: config.questionCount,
         duration: config.hasDuration ? config.duration : null,
         difficulty: config.difficulty || null,
-        type: config.hasDuration ? 'TIMED_TEST' : 'PRACTICE'  // ✅ Updated!
+        type: config.hasDuration ? 'TIMED_TEST' : 'PRACTICE'
       };
 
       console.log('📤 Sending payload to backend:', JSON.stringify(sessionPayload, null, 2));
 
-      // ✅ FIXED: Send payload directly!
       const response = await apiClient.post(
         '/practice/sessions',
-        sessionPayload,  // ← CORRECT: No { config: sessionPayload }
+        sessionPayload,
         { timeout: 60000 }
       );
 
@@ -592,7 +634,7 @@ export default function PracticeSetup() {
                                   )}
                                 </div>
                                 <div className="text-sm text-gray-600">
-                                  {subject.questionCount || subject._count?.questions || 0} questions
+                                  {getSubjectQuestionCount(subject)} questions
                                 </div>
                               </button>
                             ))}
@@ -692,7 +734,6 @@ export default function PracticeSetup() {
                             </label>
                           </div>
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            {/* ✅ FIXED: NO inline dedup - topics already deduped in useEffect */}
                             {topics.map(topic => (
                               <TopicCard
                                 key={topic.id}

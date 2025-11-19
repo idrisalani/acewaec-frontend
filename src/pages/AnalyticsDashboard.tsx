@@ -1,5 +1,5 @@
 // frontend/src/pages/analytics/AnalyticsDashboard.tsx
-// ✅ RECONCILED - Existing dashboard + Fixed component imports
+// ✅ FULLY FIXED - All safety checks for undefined data + error handling
 
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -29,7 +29,7 @@ import {
 } from '../components/analytics/AnalyticsComponents';
 
 import {
-    type StudyGoal as ServiceStudyGoal,  // ✅ Use this in converter
+    type StudyGoal as ServiceStudyGoal,
     analyticsService
 } from '../services/analytics.service';
 
@@ -107,14 +107,14 @@ function convertServiceGoalToEnhancedGoal(
 ): EnhancedStudyGoal {
     return {
         id: serviceGoal.id,
-        title: serviceGoal.title,  // Same field
-        targetAccuracy: serviceGoal.targetAccuracy,  // Same field
-        currentAccuracy: serviceGoal.currentAccuracy ?? 0,  // Default to 0
+        title: serviceGoal.title,
+        targetAccuracy: serviceGoal.targetAccuracy,
+        currentAccuracy: serviceGoal.currentAccuracy ?? 0,
         deadline: typeof serviceGoal.deadline === 'string'
             ? new Date(serviceGoal.deadline)
-            : serviceGoal.deadline,  // Convert to Date
+            : serviceGoal.deadline,
         subject: serviceGoal.subject || '',
-        completed: serviceGoal.status === 'completed',  // Convert boolean
+        completed: serviceGoal.status === 'completed',
         priority: serviceGoal.priority
     };
 }
@@ -125,6 +125,7 @@ export default function AnalyticsDashboard() {
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('overview');
     const [isPremium, setIsPremium] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
     const premiumFeatures: PremiumFeature[] = [
         {
@@ -170,26 +171,34 @@ export default function AnalyticsDashboard() {
             setIsPremium(status);
         } catch (error) {
             console.error('Failed to check premium status:', error);
+            setIsPremium(false);
         }
     };
 
     const loadDashboard = async () => {
         try {
+            setError(null);
             const dashboardData = await analyticsService.getEnhancedDashboard();
 
-            // ✅ Convert to EnhancedStudyGoal (what DashboardDataEnhanced expects)
+            // ✅ Convert to EnhancedStudyGoal with safety
             const enhancedGoals: EnhancedStudyGoal[] = (dashboardData.studyGoals || []).map(
                 convertServiceGoalToEnhancedGoal
             );
 
             const enhancedData: DashboardDataEnhanced = {
                 ...dashboardData,
-                studyGoals: enhancedGoals,  // ✅ Now matches EnhancedStudyGoal[]
+                studyGoals: enhancedGoals,
+                // ✅ Add safety defaults for all fields
+                recommendations: dashboardData.recommendations || [],
+                currentStreak: dashboardData.currentStreak || 0,
+                longestStreak: dashboardData.longestStreak || 0,
+                peerAverage: dashboardData.peerAverage || 0,
             };
 
             setData(enhancedData);
         } catch (error) {
             console.error('Failed to load dashboard:', error);
+            setError('Failed to load analytics dashboard. Please try again.');
         } finally {
             setLoading(false);
         }
@@ -199,6 +208,23 @@ export default function AnalyticsDashboard() {
         return (
             <div className="min-h-screen flex items-center justify-center">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="min-h-screen flex items-center justify-center">
+                <div className="text-center max-w-md">
+                    <AlertCircle className="mx-auto w-12 h-12 text-red-600 mb-4" />
+                    <p className="text-red-600 font-semibold mb-4">{error}</p>
+                    <button
+                        onClick={loadDashboard}
+                        className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+                    >
+                        Try Again
+                    </button>
+                </div>
             </div>
         );
     }
@@ -219,7 +245,15 @@ export default function AnalyticsDashboard() {
         );
     }
 
-    const { stats, recommendations, studyGoals, currentStreak, longestStreak, peerAverage } = data;
+    // ✅ FIX 1: Add default values when destructuring to prevent undefined errors
+    const { 
+      stats, 
+      recommendations = [], 
+      studyGoals = [], 
+      currentStreak = 0, 
+      longestStreak = 0, 
+      peerAverage = 0 
+    } = data;
 
     const getRecommendationIcon = (type: Recommendation['type']) => {
         switch (type) {
@@ -247,8 +281,8 @@ export default function AnalyticsDashboard() {
         }
     };
 
-    // ✅ Convert enhanced study goals to component-compatible format
-    const studyGoalsForComponent: UIStudyGoal[] = studyGoals.map((goal) => ({
+    // ✅ Convert enhanced study goals to component-compatible format with safety
+    const studyGoalsForComponent: UIStudyGoal[] = (studyGoals || []).map((goal) => ({
         id: goal.id,
         name: goal.title,
         targetScore: goal.targetAccuracy,
@@ -288,7 +322,7 @@ export default function AnalyticsDashboard() {
                 </div>
 
                 {/* Tabs */}
-                <div className="mb-6 flex gap-2 bg-white rounded-lg shadow-sm p-1 w-fit">
+                <div className="mb-6 flex gap-2 bg-white rounded-lg shadow-sm p-1 w-fit overflow-x-auto">
                     {[
                         { id: 'overview', label: 'Overview', icon: TrendingUp },
                         { id: 'goals', label: 'Goals', icon: Target },
@@ -301,7 +335,7 @@ export default function AnalyticsDashboard() {
                             <button
                                 key={tab.id}
                                 onClick={() => setActiveTab(tab.id)}
-                                className={`px-4 py-2 rounded-md font-medium flex items-center gap-2 transition-colors ${activeTab === tab.id
+                                className={`px-4 py-2 rounded-md font-medium flex items-center gap-2 transition-colors whitespace-nowrap ${activeTab === tab.id
                                     ? 'bg-indigo-600 text-white'
                                     : 'text-gray-700 hover:bg-gray-100'
                                     }`}
@@ -323,7 +357,7 @@ export default function AnalyticsDashboard() {
                                     <div>
                                         <p className="text-gray-600 text-sm">Total Questions</p>
                                         <p className="text-3xl font-bold text-gray-900">
-                                            {stats.overview.totalQuestions}
+                                            {stats?.overview?.totalQuestions ?? 0}
                                         </p>
                                     </div>
                                     <BookOpen size={32} className="text-blue-600 opacity-20" />
@@ -335,7 +369,7 @@ export default function AnalyticsDashboard() {
                                     <div>
                                         <p className="text-gray-600 text-sm">Correct Answers</p>
                                         <p className="text-3xl font-bold text-green-600">
-                                            {stats.overview.totalCorrect}
+                                            {stats?.overview?.totalCorrect ?? 0}
                                         </p>
                                     </div>
                                     <CheckCircle size={32} className="text-green-600 opacity-20" />
@@ -347,7 +381,7 @@ export default function AnalyticsDashboard() {
                                     <div>
                                         <p className="text-gray-600 text-sm">Overall Accuracy</p>
                                         <p className="text-3xl font-bold text-indigo-600">
-                                            {stats.overview.overallAccuracy}%
+                                            {stats?.overview?.overallAccuracy ?? '0'}%
                                         </p>
                                     </div>
                                     <Zap size={32} className="text-indigo-600 opacity-20" />
@@ -359,7 +393,7 @@ export default function AnalyticsDashboard() {
                                     <div>
                                         <p className="text-gray-600 text-sm">Sessions</p>
                                         <p className="text-3xl font-bold text-purple-600">
-                                            {stats.overview.totalSessions}
+                                            {stats?.overview?.totalSessions ?? 0}
                                         </p>
                                     </div>
                                     <Clock size={32} className="text-purple-600 opacity-20" />
@@ -367,23 +401,23 @@ export default function AnalyticsDashboard() {
                             </div>
                         </div>
 
-                        {/* ✅ Use properly typed components */}
+                        {/* ✅ FIX 2: Use safely with default empty array */}
                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                             <div className="lg:col-span-1 space-y-6">
-                                <StudyGoalsCard goals={studyGoalsForComponent} />
+                                <StudyGoalsCard goals={studyGoalsForComponent || []} />
                                 <StreakStats current={currentStreak} longest={longestStreak} />
                             </div>
 
                             <div className="lg:col-span-2 space-y-6">
                                 <AccuracyComparison
-                                    userAccuracy={parseFloat(stats.overview.overallAccuracy)}
+                                    userAccuracy={parseFloat(stats?.overview?.overallAccuracy ?? '0')}
                                     peerAverage={peerAverage}
                                 />
                             </div>
                         </div>
 
-                        {/* Recommendations */}
-                        {recommendations.length > 0 && (
+                        {/* Recommendations - ✅ FIX 3: Safety check for recommendations array */}
+                        {(recommendations && recommendations.length > 0) && (
                             <div className="bg-white rounded-lg shadow-sm p-6">
                                 <h2 className="text-lg font-semibold text-gray-900 mb-4">Recommendations</h2>
                                 <div className="space-y-3">
@@ -399,7 +433,7 @@ export default function AnalyticsDashboard() {
                                                     <p className="text-sm text-gray-600 mt-1">{rec.action}</p>
                                                 </div>
                                                 <span
-                                                    className={`px-2 py-1 rounded text-xs font-semibold ${rec.priority === 'high'
+                                                    className={`px-2 py-1 rounded text-xs font-semibold whitespace-nowrap ${rec.priority === 'high'
                                                         ? 'bg-red-200 text-red-800'
                                                         : rec.priority === 'medium'
                                                             ? 'bg-yellow-200 text-yellow-800'
@@ -417,14 +451,14 @@ export default function AnalyticsDashboard() {
 
                         {/* Recent Sessions and Subject Breakdown */}
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                            {/* Recent Sessions */}
+                            {/* Recent Sessions - ✅ FIX 4: Safety check for recentSessions array */}
                             <div className="bg-white rounded-lg shadow-sm p-6">
                                 <h2 className="text-lg font-semibold text-gray-900 mb-4">Recent Sessions</h2>
                                 <div className="space-y-2">
-                                    {stats.recentSessions.length === 0 ? (
+                                    {(!stats?.recentSessions || stats.recentSessions.length === 0) ? (
                                         <p className="text-gray-600">No sessions yet. Start practicing!</p>
                                     ) : (
-                                        stats.recentSessions.map((session) => (
+                                        (stats.recentSessions || []).map((session) => (
                                             <div
                                                 key={session.id}
                                                 className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 border border-gray-200"
@@ -439,19 +473,19 @@ export default function AnalyticsDashboard() {
                                                         })}
                                                     </p>
                                                     <p className="text-xs text-gray-600">
-                                                        {session.correct}/{session.questions} questions
+                                                        {session.correct ?? 0}/{session.questions ?? 0} questions
                                                     </p>
                                                 </div>
                                                 <div className="text-right">
                                                     <p
-                                                        className={`text-lg font-bold ${session.score >= 75
+                                                        className={`text-lg font-bold ${(session.score ?? 0) >= 75
                                                             ? 'text-green-600'
-                                                            : session.score >= 50
+                                                            : (session.score ?? 0) >= 50
                                                                 ? 'text-yellow-600'
                                                                 : 'text-red-600'
                                                             }`}
                                                     >
-                                                        {session.score.toFixed(0)}%
+                                                        {((session.score ?? 0).toFixed(0))}%
                                                     </p>
                                                 </div>
                                             </div>
@@ -460,36 +494,36 @@ export default function AnalyticsDashboard() {
                                 </div>
                             </div>
 
-                            {/* Subject Breakdown */}
+                            {/* Subject Breakdown - ✅ FIX 5: Safety check for subjectBreakdown array */}
                             <div className="bg-white rounded-lg shadow-sm p-6">
                                 <h2 className="text-lg font-semibold text-gray-900 mb-4">Subject Performance</h2>
                                 <div className="space-y-4">
-                                    {stats.subjectBreakdown.length === 0 ? (
+                                    {(!stats?.subjectBreakdown || stats.subjectBreakdown.length === 0) ? (
                                         <p className="text-gray-600">No data yet</p>
                                     ) : (
-                                        stats.subjectBreakdown.map((subject, idx) => (
+                                        (stats.subjectBreakdown || []).map((subject, idx) => (
                                             <div key={idx}>
                                                 <div className="flex items-center justify-between mb-1">
                                                     <span className="text-sm font-medium text-gray-900">
                                                         {subject.name}
                                                     </span>
                                                     <span className="text-sm font-bold text-gray-900">
-                                                        {subject.accuracy.toFixed(0)}%
+                                                        {((subject.accuracy ?? 0).toFixed(0))}%
                                                     </span>
                                                 </div>
                                                 <div className="w-full bg-gray-200 rounded-full h-2">
                                                     <div
-                                                        className={`h-2 rounded-full transition-all ${subject.accuracy >= 75
+                                                        className={`h-2 rounded-full transition-all ${(subject.accuracy ?? 0) >= 75
                                                             ? 'bg-green-500'
-                                                            : subject.accuracy >= 50
+                                                            : (subject.accuracy ?? 0) >= 50
                                                                 ? 'bg-yellow-500'
                                                                 : 'bg-red-500'
                                                             }`}
-                                                        style={{ width: `${subject.accuracy}%` }}
+                                                        style={{ width: `${subject.accuracy ?? 0}%` }}
                                                     />
                                                 </div>
                                                 <p className="text-xs text-gray-500 mt-1">
-                                                    {subject.correct}/{subject.totalQuestions} questions
+                                                    {subject.correct ?? 0}/{subject.totalQuestions ?? 0} questions
                                                 </p>
                                             </div>
                                         ))
@@ -504,7 +538,7 @@ export default function AnalyticsDashboard() {
                 {activeTab === 'goals' && (
                     <div>
                         {isPremium ? (
-                            <StudyGoalsCard goals={studyGoalsForComponent} />
+                            <StudyGoalsCard goals={studyGoalsForComponent || []} />
                         ) : (
                             <div className="bg-white rounded-lg shadow-sm p-8 text-center">
                                 <Flag size={48} className="mx-auto text-gray-400 mb-4" />
@@ -555,7 +589,7 @@ export default function AnalyticsDashboard() {
                     <div>
                         {isPremium ? (
                             <AccuracyComparison
-                                userAccuracy={parseFloat(stats.overview.overallAccuracy)}
+                                userAccuracy={parseFloat(stats?.overview?.overallAccuracy ?? '0')}
                                 peerAverage={peerAverage}
                             />
                         ) : (
@@ -588,7 +622,6 @@ export default function AnalyticsDashboard() {
                                 <p className="text-gray-600 mb-4">
                                     Download your complete analytics and performance reports.
                                 </p>
-                                {/* TODO: Add export functionality */}
                                 <button
                                     disabled
                                     className="px-6 py-2 bg-gray-300 text-gray-600 rounded-lg cursor-not-allowed"

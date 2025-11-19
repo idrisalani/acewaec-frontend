@@ -119,7 +119,7 @@ export default function ModernQuestionReview({ answers, showReview }: ModernQues
         <AnimatePresence mode="popLayout">
           {filteredAnswers.map((answer, idx) => {
             const correctOption = answer.question.options.find(opt => opt.isCorrect);
-            const selectedOption = answer.question.options.find(opt => opt.id === answer.selectedAnswer);
+            const selectedOption = answer.question.options.find(opt => opt.label === answer.selectedAnswer);
             const isExpanded = expandedQuestions.has(answer.questionId);
 
             return (
